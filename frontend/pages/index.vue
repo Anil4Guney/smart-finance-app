@@ -106,8 +106,7 @@ const incomeData = computed(() => {
     labels: Object.keys(totals),
     datasets: [{
       data: Object.values(totals),
-      // Gelirler için birbirinden farklı, ferah renkler (Mavi, Turkuaz, Zümrüt, Sarı, Mor)
-      backgroundColor: ['#3B82F6', '#14B8A6', '#10B981', '#F59E0B', '#8B5CF6'], 
+      backgroundColor: ['#3B82F6', '#14B8A6', '#10B981', '#F59E0B', '#8B5CF6'],
       hoverBackgroundColor: ['#2563EB', '#0D9488', '#059669', '#D97706', '#7C3AED'],
       borderWidth: 0, hoverOffset: 4
     }]
@@ -126,7 +125,6 @@ const expenseData = computed(() => {
     labels: Object.keys(totals),
     datasets: [{
       data: Object.values(totals),
-      // Giderler için birbirinden farklı renkler (Kırmızı, Pembe, Turuncu, İndigo, Gri, Cam Göbeği)
       backgroundColor: ['#EF4444', '#EC4899', '#F97316', '#6366F1', '#6B7280', '#06B6D4'],
       hoverBackgroundColor: ['#DC2626', '#DB2777', '#EA580C', '#4F46E5', '#4B5563', '#0891B2'],
       borderWidth: 0, hoverOffset: 4

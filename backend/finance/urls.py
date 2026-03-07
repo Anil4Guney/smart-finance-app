@@ -1,12 +1,11 @@
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
-from . import views
+from .views import TransactionViewSet, SavingsGoalViewSet # SavingsGoalViewSet eklendi
 
 router = DefaultRouter()
-router.register(r'transactions', views.TransactionViewSet, basename='transaction')
-router.register(r'savings-goals', views.SavingsGoalViewSet, basename='savingsgoal')
+router.register(r'transactions', TransactionViewSet, basename='transaction')
+router.register(r'savings-goals', SavingsGoalViewSet, basename='savings-goal') # Yeni köprümüz!
 
 urlpatterns = [
-    path("", include(router.urls)),
-    path("scan-receipt/", views.scan_receipt),
+    path('', include(router.urls)),
 ]

@@ -11,5 +11,5 @@ class TransactionAdmin(admin.ModelAdmin):
 
 @admin.register(SavingsGoal)
 class SavingsGoalAdmin(admin.ModelAdmin):
-    list_display = ('name', 'target_amount', 'current_amount')
-    list_filter = ('name',)
+    list_display = ('title', 'target_amount', 'current_amount')
+    list_filter = ('title',)
