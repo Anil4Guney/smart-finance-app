@@ -22,9 +22,8 @@
         dataKey="id"
         tableStyle="min-width: 50rem"
         :loading="pending"
-        stripedRows
         scrollable
-        class="p-datatable-lg p-datatable-striped p-datatable-hoverable text-lg" 
+        class="p-datatable-lg p-datatable-hoverable text-lg" 
       >
         <Column field="title" header="Title">
           <template #body="{ data }">
@@ -483,12 +482,6 @@ const confirmDelete = (row: { id: number; title?: string }) => {
 }
 .dark .transactions-table-wrapper :deep(.p-datatable-tbody > tr:hover) {
   background: rgba(255, 255, 255, 0.05);
-}
-.transactions-table-wrapper :deep(.p-datatable-tbody > tr:nth-child(even)) {
-  background: var(--p-surface-50);
-}
-.dark .transactions-table-wrapper :deep(.p-datatable-tbody > tr:nth-child(even)) {
-  background: rgba(0, 0, 0, 0.2);
 }
 .dark .transactions-table-wrapper :deep(.p-datatable) {
   background: transparent;
