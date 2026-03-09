@@ -1,103 +1,41 @@
-# SmartFinance
+#  SmartFinance - AI-Powered Personal Finance Manager
 
-Personal finance application with Django backend and Nuxt 3 + PrimeVue (Aura) + Tailwind CSS frontend. Structure prepared for LLM integration (OpenAI/Gemini).
+[🇬🇧 Read in English](#-english) | [🇹🇷 Türkçe Okuyun](#-türkçe)
 
-## Tech Stack
+<div align="center">
+  <img src="https://img.shields.io/badge/Vue.js-35495E?style=for-the-badge&logo=vuedotjs&logoColor=4FC08D" alt="Vue.js" />
+  <img src="https://img.shields.io/badge/Nuxt-002E3B?style=for-the-badge&logo=nuxtdotjs&logoColor=#00DC82" alt="Nuxt" />
+  <img src="https://img.shields.io/badge/Django-092E20?style=for-the-badge&logo=django&logoColor=white" alt="Django" />
+  <img src="https://img.shields.io/badge/Docker-2CA5E0?style=for-the-badge&logo=docker&logoColor=white" alt="Docker" />
+  <img src="https://img.shields.io/badge/Tailwind_CSS-38B2AC?style=for-the-badge&logo=tailwind-css&logoColor=white" alt="Tailwind" />
+  <img src="https://img.shields.io/badge/Google_Gemini-8E75B2?style=for-the-badge&logo=google&logoColor=white" alt="Gemini AI" />
+</div>
 
-- **Backend:** Python, Django, Django REST Framework, SQLite
-- **Frontend:** Nuxt 3, PrimeVue (Aura Theme), Tailwind CSS
-- **AI:** Placeholder for OpenAI / Gemini
-
----
-
-## Setup Commands
-
-### Backend
-
-```powershell
-# From project root
-cd backend
-
-# Create virtual environment (if not exists)
-python -m venv venv
-
-# Activate virtual environment (Windows PowerShell)
-.\venv\Scripts\Activate.ps1
-
-# Install dependencies
-pip install -r requirements.txt
-
-# Run migrations
-python manage.py migrate
-
-# (Optional) Create superuser for admin
-python manage.py createsuperuser
-
-# Run development server
-python manage.py runserver
-```
-
-Backend API: **http://127.0.0.1:8000**  
-Admin: **http://127.0.0.1:8000/admin**  
-API endpoints: **http://127.0.0.1:8000/api/transactions/** and **http://127.0.0.1:8000/api/savings-goals/**
-
-### Frontend
-
-```powershell
-# From project root
-cd frontend
-
-# Install dependencies
-npm install
-
-# Run development server
-npm run dev
-```
-
-Frontend: **http://localhost:3000**
+<br>
 
 ---
 
-## Project Structure
 
-```
-smart-finance-app/
-├── backend/
-│   ├── config/                 # Django project settings
-│   │   ├── settings.py
-│   │   ├── urls.py
-│   │   └── ...
-│   ├── finance/                # Finance app
-│   │   ├── models.py           # Transaction, SavingsGoal
-│   │   ├── serializers.py
-│   │   ├── views.py
-│   │   ├── urls.py
-│   │   └── admin.py
-│   ├── manage.py
-│   └── requirements.txt
-├── frontend/
-│   ├── layouts/
-│   │   └── default.vue         # Sidebar + Navbar layout
-│   ├── pages/
-│   │   ├── index.vue           # Dashboard
-│   │   ├── transactions/
-│   │   └── savings/
-│   ├── plugins/
-│   │   └── primevue.client.ts
-│   ├── nuxt.config.ts
-│   └── package.json
-└── README.md
-```
 
----
+SmartFinance is a modern, full-stack personal finance application designed to help users track their expenses, manage monthly budgets, and achieve their savings goals. Built with a focus on automation and artificial intelligence, it acts as a smart companion for your financial journey.
 
-## Backend Models
+###  Key Features
+* **AI Financial Advisor:** Context-aware chatbot powered by Google Gemini AI that analyzes your current financial state, spending habits, and provides personalized insights.
+* **OCR Receipt Scanning:** Instantly extract amounts, titles, and dates from physical receipts using AI vision models.
+* **Advanced Analytics:** Interactive charts and a dynamic 6-month cash flow trend analyzer built with PrimeVue and Chart.js.
+* **Automated Subscriptions:** Background tasks (cron jobs) via custom Django Management Commands automatically deduct upcoming bills from your balance on their due dates.
+* **Savings Goals & Budgets:** Track your journey toward financial milestones with visual progress bars and dynamic budget limits.
+* **Mobile-First Responsive Design:** Flawless UI experience across desktops, tablets, and smartphones using Tailwind CSS.
+* **Fully Dockerized:** Ready for production with containerized isolated environments for both frontend and backend.
 
-- **Transaction:** `amount`, `type` (income/expense), `category`, `date`, `description`
-- **SavingsGoal:** `name`, `target_amount`, `current_amount`, `deadline`
+###  Tech Stack
+* **Frontend:** Nuxt 3, Vue 3 (Composition API), Tailwind CSS, PrimeVue
+* **Backend:** Python 3, Django, Django REST Framework (DRF)
+* **Database:** SQLite (Dev) / PostgreSQL (Prod)
+* **DevOps & Tools:** Docker, Docker Compose, Git
 
----
-
-## License
-
-Private / Educational use.
+###  Local Setup (Docker)
+1. Clone the repository: `git clone https://github.com/Anil4Guney/smart-finance-app.git`
+2. Add your Gemini API Key to `backend/.env`: `GEMINI_API_KEY=your_api_key_here`
+3. Run the containers: `docker-compose up --build`
+4. Access the App: `http://localhost:3000`

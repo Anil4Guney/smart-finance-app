@@ -150,6 +150,7 @@
       <slot />
     </main>
 
+    <Toast />
     <ConfirmDialog />
   </div>
 </template>
@@ -162,7 +163,6 @@ import { useSubscriptions } from '~/composables/useSubscriptions'
 const { logout, user } = useAuth()
 const { notifications, unreadCount, dismissNotification, markAllAsRead } = useSubscriptions() 
 
-// YENİ: Mobil Menünün açık/kapalı durumunu tutar
 const isMobileMenuOpen = ref(false)
 
 const isProfileOpen = ref(false)
