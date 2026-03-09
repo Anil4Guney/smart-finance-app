@@ -1,22 +1,22 @@
 <template>
-  <div class="p-6">
+  <div class="p-6 max-w-[1400px] mx-auto">
     <div class="flex justify-between items-center mb-6">
       <div>
-        <h1 class="text-2xl font-bold text-surface-700 dark:text-surface-200">
+        <h1 class="text-3xl font-bold text-gray-900 dark:text-white transition-colors duration-300">
           Transactions
         </h1>
-        <p class="mt-2 text-surface-600 dark:text-surface-400">
+        <p class="mt-2 text-gray-600 dark:text-gray-400 transition-colors duration-300">
           Manage your income and expenses here.
         </p>
       </div>
-      <Button label="Add New" icon="pi pi-plus" @click="showDialog = true" />
+      <Button label="Add New" icon="pi pi-plus" @click="showDialog = true" class="shadow-sm" />
     </div>
 
-    <div v-if="error" class="mt-4 text-red-600">
+    <div v-if="error" class="mt-4 text-red-600 dark:text-red-400 font-medium">
       Error loading data: {{ error }}
     </div>
 
-    <div class="mt-6 transactions-table-wrapper">
+    <div class="mt-6 p-6 bg-white dark:bg-gray-800 rounded-3xl shadow-sm border border-gray-100 dark:border-gray-700 transition-colors duration-300 transactions-table-wrapper overflow-hidden">
       <DataTable
         :value="tableData"
         dataKey="id"
@@ -25,16 +25,24 @@
         stripedRows
         class="p-datatable-sm p-datatable-striped p-datatable-hoverable"
       >
-        <Column field="title" header="Title" />
-        <Column field="amount" header="Amount">
+        <Column field="title" header="Title">
           <template #body="{ data }">
-            {{ formatCurrency(data.amount) }}
+            <span class="font-medium text-gray-900 dark:text-gray-100">{{ data.title }}</span>
           </template>
         </Column>
-        <Column field="category" header="Category" />
+        <Column field="amount" header="Amount">
+          <template #body="{ data }">
+            <span class="font-bold text-gray-800 dark:text-white">{{ formatCurrency(data.amount) }}</span>
+          </template>
+        </Column>
+        <Column field="category" header="Category">
+           <template #body="{ data }">
+            <span class="text-gray-700 dark:text-gray-300">{{ data.category }}</span>
+          </template>
+        </Column>
         <Column field="description" header="Description">
           <template #body="{ data }">
-            <span class="text-surface-600 dark:text-surface-400 text-sm">
+            <span class="text-gray-500 dark:text-gray-400 text-sm italic">
               {{ data.description || '—' }}
             </span>
           </template>
@@ -44,10 +52,15 @@
             <Tag
               :value="data.transaction_type"
               :severity="data.transaction_type === 'INCOME' ? 'success' : 'danger'"
+              class="font-bold tracking-wide"
             />
           </template>
         </Column>
-        <Column field="date" header="Date" />
+        <Column field="date" header="Date">
+           <template #body="{ data }">
+            <span class="text-gray-700 dark:text-gray-300">{{ data.date }}</span>
+          </template>
+        </Column>
         <Column header="Actions" style="width: 100px">
           <template #body="{ data }">
             <Button
@@ -71,8 +84,8 @@
       :style="{ width: '500px' }"
       @hide="resetForm"
     >
-      <form @submit.prevent="handleSubmit" class="space-y-4">
-        <div class="flex items-center gap-3 mb-4 pb-4 border-b border-surface-200 dark:border-surface-700">
+      <form @submit.prevent="handleSubmit" class="space-y-4 pt-2">
+        <div class="flex items-center gap-3 mb-4 pb-4 border-b border-gray-200 dark:border-gray-700">
           <Button 
             type="button"
             label="Scan Receipt 📸" 
@@ -86,23 +99,28 @@
           </span>
         </div>
         <div>
-          <label for="title" class="block text-sm font-medium mb-2">Title</label>
+          <label for="title" class="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">Title</label>
           <InputText id="title" v-model="form.title" class="w-full" required />
         </div>
+        
         <div>
-          <label for="amount" class="block text-sm font-medium mb-2">Amount</label>
+          <label for="amount" class="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">
+            Amount (in {{ currentCurrency }})
+          </label>
           <InputNumber
             id="amount"
-            v-model="form.amount"
+            v-model="form.displayAmount"
             class="w-full"
-            mode="decimal"
+            mode="currency"
+            :currency="currentCurrency"
             :min="0"
             :maxFractionDigits="2"
             required
           />
         </div>
+
         <div>
-          <label for="type" class="block text-sm font-medium mb-2">Type</label>
+          <label for="type" class="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">Type</label>
           <SelectButton
             id="type"
             v-model="form.transaction_type"
@@ -113,7 +131,7 @@
           />
         </div>
         <div>
-          <label for="category" class="block text-sm font-medium mb-2">Category</label>
+          <label for="category" class="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">Category</label>
           <Dropdown
             id="category"
             v-model="form.category"
@@ -131,15 +149,15 @@
           />
         </div>
         <div>
-          <label for="date" class="block text-sm font-medium mb-2">Date</label>
+          <label for="date" class="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">Date</label>
           <Calendar id="date" v-model="form.date" class="w-full" dateFormat="yy-mm-dd" required />
         </div>
         <div>
-          <label for="description" class="block text-sm font-medium mb-2">Description (optional)</label>
+          <label for="description" class="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">Description (optional)</label>
           <Textarea id="description" v-model="form.description" class="w-full" rows="3" />
         </div>
-        <div v-if="submitError" class="text-red-600 text-sm">{{ submitError }}</div>
-        <div class="flex gap-2 justify-end">
+        <div v-if="submitError" class="text-red-600 dark:text-red-400 text-sm">{{ submitError }}</div>
+        <div class="flex gap-2 justify-end mt-6">
           <Button
             type="button"
             label="Cancel"
@@ -158,7 +176,7 @@
       :style="{ width: '90vw', maxWidth: '350px' }"
     >
       <div class="flex flex-col gap-4 py-4">
-        <p class="text-surface-600 dark:text-surface-400 text-center mb-2">How would you like to upload your receipt?</p>
+        <p class="text-gray-600 dark:text-gray-400 text-center mb-2">How would you like to upload your receipt?</p>
         
         <Button 
           label="Take Photo 📸" 
@@ -206,22 +224,24 @@ import Calendar from 'primevue/calendar'
 import Textarea from 'primevue/textarea'
 import Tag from 'primevue/tag'
 import { useConfirm } from 'primevue/useconfirm'
+import { useCurrency } from '~/composables/useCurrency' // Döviz Beyni bağlandı!
 
 definePageMeta({ layout: 'default' })
 
 const { token } = useAuth()
 const confirm = useConfirm()
 
-const showDialog = ref(false)
+// Döviz araçlarını alıyoruz
+const { formatCurrency, currentCurrency, getRate } = useCurrency()
 
-// YENİ: Seçim penceresi ve input referansları
+const showDialog = ref(false)
 const showScanDialog = ref(false)
 const cameraInput = ref<HTMLInputElement | null>(null)
 const fileInput = ref<HTMLInputElement | null>(null)
 
 const form = ref({
   title: '',
-  amount: null as number | null,
+  displayAmount: null as number | null, // Kullanıcının ekranda gördüğü miktar (örn: 32500 TL)
   transaction_type: 'INCOME' as 'INCOME' | 'EXPENSE',
   category: '',
   customCategoryName: '',
@@ -255,19 +275,10 @@ const {
 
 const tableData = computed(() => (data.value && Array.isArray(data.value) ? data.value : []))
 
-const formatCurrency = (value: number | string) => {
-  const num = typeof value === 'number' ? value : Number(value)
-  if (Number.isNaN(num)) return value
-  return new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency: 'USD',
-  }).format(num)
-}
-
 const resetForm = () => {
   form.value = {
     title: '',
-    amount: null,
+    displayAmount: null,
     transaction_type: 'INCOME',
     category: '',
     customCategoryName: '',
@@ -284,32 +295,25 @@ const getCategoryToSend = () => {
   return form.value.category
 }
 
-// YENİ: Kamera tetikleyici
 const triggerCamera = () => {
   showScanDialog.value = false
   cameraInput.value?.click()
 }
 
-// YENİ: Dosya tetikleyici
 const triggerFile = () => {
   showScanDialog.value = false
   fileInput.value?.click()
 }
 
-// YENİ: Gizli inputlardan gelen dosyayı yakalayan fonksiyon
 const handleNativeFileUpload = async (event: Event) => {
   const target = event.target as HTMLInputElement
   const file = target.files?.[0]
   if (!file) return
 
-  // Dosyayı asıl yükleme fonksiyonuna gönder
   await onReceiptUpload({ files: [file] })
-
-  // Aynı dosyayı tekrar seçebilmek için inputu temizle
   target.value = ''
 }
 
-// MEVCUT: Fişi Backend'e gönderip AI sonucunu alan fonksiyon
 async function onReceiptUpload(event: { files: File[] }) {
   const file = event.files?.[0]
   if (!file) return
@@ -333,7 +337,13 @@ async function onReceiptUpload(event: { files: File[] }) {
     )
 
     form.value.title = result.title || form.value.title
-    form.value.amount = result.amount ?? form.value.amount
+    
+    // AI'dan gelen USD'yi kullanıcının seçili dövizine çevirip ekranda gösteriyoruz
+    if (result.amount != null) {
+      const rate = getRate()
+      form.value.displayAmount = result.amount * rate
+    }
+
     form.value.category = result.category || form.value.category
     form.value.transaction_type = 'EXPENSE'
     
@@ -350,7 +360,7 @@ async function onReceiptUpload(event: { files: File[] }) {
 
 const handleSubmit = async () => {
   const categoryToSend = getCategoryToSend()
-  if (!form.value.date || form.value.amount === null || !form.value.category) {
+  if (!form.value.date || form.value.displayAmount === null || !form.value.category) {
     submitError.value = 'Please fill all required fields'
     return
   }
@@ -363,6 +373,11 @@ const handleSubmit = async () => {
   submitError.value = ''
 
   try {
+    // Veritabanına kaydederken rakamı seçili kurdan tekrar USD (Base) birimine çeviriyoruz (Bölme işlemi).
+    // Böylece veritabanında her zaman USD durur, ekranda değişir.
+    const rate = getRate()
+    const amountInUSD = form.value.displayAmount / rate
+
     await $fetch(`${API_BASE}/transactions/`, {
       method: 'POST',
       headers: {
@@ -371,7 +386,7 @@ const handleSubmit = async () => {
       },
       body: {
         title: form.value.title,
-        amount: form.value.amount,
+        amount: amountInUSD, // USD olarak gidiyor
         transaction_type: form.value.transaction_type,
         category: categoryToSend,
         date: form.value.date.toISOString().split('T')[0],
@@ -414,12 +429,30 @@ const confirmDelete = (row: { id: number; title?: string }) => {
 
 <style scoped>
 .transactions-table-wrapper :deep(.p-datatable-tbody > tr:hover) {
-  background: var(--p-surface-hover);
+  background: var(--p-surface-100);
+}
+.dark .transactions-table-wrapper :deep(.p-datatable-tbody > tr:hover) {
+  background: rgba(255, 255, 255, 0.05);
 }
 .transactions-table-wrapper :deep(.p-datatable-tbody > tr:nth-child(even)) {
   background: var(--p-surface-50);
 }
 .dark .transactions-table-wrapper :deep(.p-datatable-tbody > tr:nth-child(even)) {
-  background: var(--p-surface-800);
+  background: rgba(0, 0, 0, 0.2);
+}
+.dark .transactions-table-wrapper :deep(.p-datatable) {
+  background: transparent;
+}
+.dark .transactions-table-wrapper :deep(.p-datatable-header),
+.dark .transactions-table-wrapper :deep(.p-datatable-thead > tr > th) {
+  background: transparent;
+  color: #e5e7eb;
+  border-bottom-color: #374151;
+}
+.dark .transactions-table-wrapper :deep(.p-datatable-tbody > tr) {
+  color: #d1d5db;
+}
+.dark .transactions-table-wrapper :deep(.p-datatable-tbody > tr > td) {
+  border-bottom-color: #374151;
 }
 </style>

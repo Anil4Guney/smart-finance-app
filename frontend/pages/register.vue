@@ -1,6 +1,5 @@
 <template>
   <div class="auth-page min-h-screen flex">
-    <!-- Left: Gradient + branding -->
     <div class="auth-brand hidden lg:flex flex-col justify-center px-12 xl:px-20">
       <div class="auth-brand-inner">
         <div class="logo-placeholder">
@@ -13,7 +12,6 @@
       </div>
     </div>
 
-    <!-- Right: Form -->
     <div class="auth-form-wrapper flex-1 flex items-center justify-center p-6 sm:p-10">
       <div class="auth-card w-full max-w-md">
         <div class="text-center mb-8 lg:hidden">
@@ -26,7 +24,31 @@
         <p class="auth-desc">Fill in your details to get started.</p>
 
         <form @submit.prevent="handleRegister" class="auth-form mt-8">
-          <div class="input-float-group">
+          
+          <div class="flex gap-4">
+            <div class="input-float-group flex-1">
+              <InputText
+                id="firstName"
+                v-model="firstName"
+                class="input-float w-full"
+                :class="{ 'filled': firstName }"
+                required
+              />
+              <label for="firstName" class="input-float-label">First Name</label>
+            </div>
+            <div class="input-float-group flex-1">
+              <InputText
+                id="lastName"
+                v-model="lastName"
+                class="input-float w-full"
+                :class="{ 'filled': lastName }"
+                required
+              />
+              <label for="lastName" class="input-float-label">Last Name</label>
+            </div>
+          </div>
+
+          <div class="input-float-group mt-6">
             <InputText
               id="username"
               v-model="username"
@@ -36,6 +58,7 @@
             />
             <label for="username" class="input-float-label">Username</label>
           </div>
+          
           <div class="input-float-group mt-6">
             <InputText
               id="email"
@@ -43,9 +66,11 @@
               type="email"
               class="input-float w-full"
               :class="{ 'filled': email }"
+              required
             />
-            <label for="email" class="input-float-label">Email (optional)</label>
+            <label for="email" class="input-float-label">Email</label>
           </div>
+          
           <div class="input-float-group mt-6" :class="{ 'filled': password }">
             <Password
               id="password"
@@ -57,13 +82,16 @@
             />
             <label for="password" class="input-float-label">Password</label>
           </div>
+          
           <div v-if="error" class="mt-4 text-red-600 text-sm font-medium">{{ error }}</div>
+          
           <Button
             type="submit"
             label="Register"
             class="auth-btn w-full mt-8"
             :loading="loading"
           />
+          
           <p class="auth-footer">
             Already have an account?
             <NuxtLink to="/login" class="auth-link">Login</NuxtLink>
@@ -75,9 +103,12 @@
 </template>
 
 <script setup lang="ts">
+import { ref } from 'vue'
+import { useRouter } from 'vue-router'
 import InputText from 'primevue/inputtext'
 import Password from 'primevue/password'
 import Button from 'primevue/button'
+import { useAuth } from '~/composables/useAuth'
 
 definePageMeta({
   layout: false,
@@ -86,16 +117,29 @@ definePageMeta({
 const { register } = useAuth()
 const router = useRouter()
 
+// YENİ: Ad ve Soyad değişkenleri eklendi
+const firstName = ref('')
+const lastName = ref('')
 const username = ref('')
 const email = ref('')
 const password = ref('')
+
 const error = ref('')
 const loading = ref(false)
 
 const handleRegister = async () => {
   error.value = ''
   loading.value = true
-  const result = await register(username.value, password.value, email.value || undefined)
+  
+  // YENİ: Bilgiler Backend'e tam takım gönderiliyor
+  const result = await register(
+    username.value, 
+    password.value, 
+    email.value, 
+    firstName.value, 
+    lastName.value
+  )
+  
   loading.value = false
 
   if (result.success) {
