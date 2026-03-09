@@ -9,9 +9,17 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from .models import Transaction, SavingsGoal
-from .serializers import TransactionSerializer, SavingsGoalSerializer
+# 1. TÜM MODELLERİ VE SERIALIZER'LARI İÇERİ AKTARIYORUZ
+from .models import Transaction, SavingsGoal, CategoryBudget, Subscription
+from .serializers import (
+    TransactionSerializer, 
+    SavingsGoalSerializer, 
+    CategoryBudgetSerializer, 
+    SubscriptionSerializer
+)
 from .services import analyze_receipt
+
+# --- MEVCUT VİEWSET'LER (Aynen Korundu) ---
 
 class TransactionViewSet(viewsets.ModelViewSet):
     serializer_class = TransactionSerializer
@@ -39,6 +47,34 @@ class SavingsGoalViewSet(viewsets.ModelViewSet):
         serializer.save(user=self.request.user)
 
 
+# --- YENİ EKLENEN VİEWSET'LER (Bütçe ve Abonelikler) ---
+
+class CategoryBudgetViewSet(viewsets.ModelViewSet):
+    serializer_class = CategoryBudgetSerializer
+    permission_classes = [IsAuthenticated]
+    pagination_class = None
+
+    def get_queryset(self):
+        return CategoryBudget.objects.filter(user=self.request.user)
+
+    def perform_create(self, serializer):
+        serializer.save(user=self.request.user)
+
+
+class SubscriptionViewSet(viewsets.ModelViewSet):
+    serializer_class = SubscriptionSerializer
+    permission_classes = [IsAuthenticated]
+    pagination_class = None
+
+    def get_queryset(self):
+        return Subscription.objects.filter(user=self.request.user)
+
+    def perform_create(self, serializer):
+        serializer.save(user=self.request.user)
+
+
+# --- FİŞ TARAMA (Aynen Korundu) ---
+
 @api_view(["POST"])
 @permission_classes([IsAuthenticated])
 def scan_receipt(request: Request) -> Response:
@@ -58,54 +94,67 @@ def scan_receipt(request: Request) -> Response:
         return Response({"detail": f"Receipt analysis failed: {str(e)}"}, status=500)
 
 
-class AIAdvisorView(APIView):
+# --- YENİLENEN YAPAY ZEKA SOHBET ASİSTANI ---
+
+class AIChatView(APIView):
     permission_classes = [IsAuthenticated]
 
-    def get(self, request):
-        transactions = Transaction.objects.filter(user=request.user)
-        goals = SavingsGoal.objects.filter(user=request.user)
+    def post(self, request):
+        """Frontend'den gelen sohbet mesajını alır, kullanıcının finansal verileriyle harmanlar ve Gemini'a sorar."""
+        user_message = request.data.get('prompt')
+        
+        if not user_message:
+            return Response({"error": "Prompt is required"}, status=400)
 
-        # views.py içinde AIAdvisorView altındaki hesaplamayı şöyle güncelle:
+        user = request.user
+        
+        # Kullanıcının tüm finansal bağlamını (Context) veritabanından çekiyoruz
+        transactions = Transaction.objects.filter(user=user)
+        budgets = CategoryBudget.objects.filter(user=user)
+        subscriptions = Subscription.objects.filter(user=user)
+
         total_income = sum(float(t.amount) for t in transactions if t.transaction_type == 'INCOME')
         total_expense = sum(float(t.amount) for t in transactions if t.transaction_type == 'EXPENSE')
 
-        # Yapay zekaya göndermek için verileri kısa metinlere çeviriyoruz
-        tx_details = ", ".join([f"{t.title} (${t.amount})" for t in transactions[:10]])
-        goal_details = ", ".join([f"{g.title} (${g.current_amount}/${g.target_amount})" for g in goals])
+        # Yapay zekaya göndermek için verileri kısa özet metinlere çeviriyoruz
+        tx_details = ", ".join([f"{t.category}: ${t.amount}" for t in transactions[:15]])
+        budget_details = ", ".join([f"{b.category}: ${b.limit_amount}" for b in budgets])
+        sub_details = ", ".join([f"{s.name}: ${s.amount}" for s in subscriptions])
 
-        prompt = f"""
-        Sen uzman, samimi ve modern bir finansal danışmansın. 
-        Kullanıcının toplam geliri: ${total_income}, toplam gideri: ${total_expense}.
-        Son işlemleri: {tx_details}
-        Birikim hedefleri: {goal_details}
+        # Gemini'a verilecek gizli sistem talimatı (Kullanıcı bunu görmez, sadece AI görür)
+        system_prompt = f"""
+        Sen 'SmartFinance' uygulaması için çalışan uzman, samimi ve zeki bir finansal yapay zeka asistanısın.
+        Kullanıcının adı: {user.first_name or user.username}.
 
-        Lütfen bu verilere dayanarak kullanıcıya tam olarak 3 adet, aksiyon odaklı, kısa ve öz finansal tavsiye ver.
-        Harcamalarını nasıl optimize edebileceğini ve hedeflerine nasıl daha hızlı ulaşabileceğini söyle.
-        
-        **ÖNEMLİ:** Çıktıyı tam olarak aşağıdaki JSON formatında, hiçbir Markdown etiketi (örneğin ```json) kullanmadan döndür:
-        [
-          {{
-            "id": 1,
-            "title": "Tavsiye Başlığı (Maks 5 kelime)",
-            "content": "Tavsiye içeriği (Maks 2 cümle)"
-          }},
-          ...
-        ]
-        
-        Sadece İngilizce dilinde tavsiye ver. Gereksiz emoji kullanma, sadece önemli yerler için 1-2 emoji kullanabilirsin.
+        Kullanıcının Güncel Finansal Durumu:
+        - Toplam Gelir: ${total_income}
+        - Toplam Gider: ${total_expense}
+        - Son Harcamaları: {tx_details if tx_details else 'Henüz harcama yok'}
+        - Belirlediği Bütçe Limitleri: {budget_details if budget_details else 'Henüz limit yok'}
+        - Yaklaşan Abonelikleri: {sub_details if sub_details else 'Abonelik yok'}
+
+        Kullanıcı sana aşağıdaki soruyu sordu. 
+        Eğer sorusu kendi harcamaları, bütçeleri veya abonelikleriyle ilgiliyse yukarıdaki verileri kullanarak net ve doğru cevap ver. 
+        Eğer genel bir finans/yatırım sorusuysa, güncel bilgilere dayanarak profesyonel bir tavsiye ver. 
+        Konuşma dilin doğal, okuması kolay olsun ve uygun yerlerde emoji kullan.
+        ASLA JSON formatı döndürme, sadece normal sohbet metni (Markdown destekli) döndür.
+
+        Kullanıcının Sorusu: "{user_message}"
         """
 
         try:
-            # Şifreyi doğrudan settings üzerinden çekiyoruz (O da .env'den alıyor)
             api_key = settings.GEMINI_API_KEY
-            
             if not api_key:
                 return Response({"error": "API Key .env dosyasından okunamadı!"}, status=400)
 
             genai.configure(api_key=api_key)
             model = genai.GenerativeModel('gemini-2.5-flash')
-            response = model.generate_content(prompt)
             
-            return Response({"advice": response.text})
+            # Gemini'a promptu gönderiyoruz
+            response = model.generate_content(system_prompt)
+            
+            # Frontend'e "reply" objesi içinde düz metin dönüyoruz
+            return Response({"reply": response.text})
+            
         except Exception as e:
             return Response({"error": str(e)}, status=500)

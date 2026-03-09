@@ -5,73 +5,91 @@
         <h1 class="text-3xl font-bold text-gray-900 dark:text-white transition-colors duration-300">
           Transactions
         </h1>
-        <p class="mt-2 text-gray-600 dark:text-gray-400 transition-colors duration-300">
+        <p class="mt-2 text-gray-600 dark:text-gray-400 transition-colors duration-300 text-lg">
           Manage your income and expenses here.
         </p>
       </div>
-      <Button label="Add New" icon="pi pi-plus" @click="showDialog = true" class="shadow-sm" />
+      <Button label="Add New" icon="pi pi-plus" @click="openAddModal" class="shadow-sm p-button-lg" />
     </div>
 
     <div v-if="error" class="mt-4 text-red-600 dark:text-red-400 font-medium">
       Error loading data: {{ error }}
     </div>
 
-    <div class="mt-6 p-6 bg-white dark:bg-gray-800 rounded-3xl shadow-sm border border-gray-100 dark:border-gray-700 transition-colors duration-300 transactions-table-wrapper overflow-hidden">
+    <div class="mt-6 p-6 bg-white dark:bg-gray-800 rounded-3xl shadow-sm border border-gray-100 dark:border-gray-700 transition-colors duration-300 transactions-table-wrapper overflow-x-auto">
       <DataTable
         :value="tableData"
         dataKey="id"
         tableStyle="min-width: 50rem"
         :loading="pending"
         stripedRows
-        class="p-datatable-sm p-datatable-striped p-datatable-hoverable"
+        scrollable
+        class="p-datatable-lg p-datatable-striped p-datatable-hoverable text-lg" 
       >
         <Column field="title" header="Title">
           <template #body="{ data }">
-            <span class="font-medium text-gray-900 dark:text-gray-100">{{ data.title }}</span>
+            <span class="font-bold text-gray-900 dark:text-gray-100 text-lg">{{ data.title }}</span>
           </template>
         </Column>
+        
         <Column field="amount" header="Amount">
           <template #body="{ data }">
-            <span class="font-bold text-gray-800 dark:text-white">{{ formatCurrency(data.amount) }}</span>
+            <span class="font-extrabold text-xl text-gray-800 dark:text-white">{{ formatCurrency(data.amount) }}</span>
           </template>
         </Column>
+        
         <Column field="category" header="Category">
            <template #body="{ data }">
-            <span class="text-gray-700 dark:text-gray-300">{{ data.category }}</span>
+            <span class="text-gray-700 dark:text-gray-300 font-medium text-lg">{{ data.category }}</span>
           </template>
         </Column>
+        
         <Column field="description" header="Description">
           <template #body="{ data }">
-            <span class="text-gray-500 dark:text-gray-400 text-sm italic">
+            <span class="text-gray-500 dark:text-gray-400 italic">
               {{ data.description || '—' }}
             </span>
           </template>
         </Column>
+        
         <Column field="transaction_type" header="Type">
           <template #body="{ data }">
             <Tag
               :value="data.transaction_type"
               :severity="data.transaction_type === 'INCOME' ? 'success' : 'danger'"
-              class="font-bold tracking-wide"
+              class="font-bold tracking-wide text-sm px-3 py-1"
             />
           </template>
         </Column>
+        
         <Column field="date" header="Date">
            <template #body="{ data }">
-            <span class="text-gray-700 dark:text-gray-300">{{ data.date }}</span>
+            <span class="text-gray-700 dark:text-gray-300 font-medium">{{ data.date }}</span>
           </template>
         </Column>
-        <Column header="Actions" style="width: 100px">
+        
+        <Column header="Actions" style="width: 120px">
           <template #body="{ data }">
-            <Button
-              icon="pi pi-trash"
-              severity="danger"
-              text
-              rounded
-              size="small"
-              v-tooltip.top="'Delete'"
-              @click="confirmDelete(data)"
-            />
+            <div class="flex items-center gap-1">
+              <Button
+                icon="pi pi-pencil"
+                severity="info"
+                text
+                rounded
+                size="large"
+                v-tooltip.top="'Edit'"
+                @click="openEditModal(data)"
+              />
+              <Button
+                icon="pi pi-trash"
+                severity="danger"
+                text
+                rounded
+                size="large"
+                v-tooltip.top="'Delete'"
+                @click="confirmDelete(data)"
+              />
+            </div>
           </template>
         </Column>
       </DataTable>
@@ -80,12 +98,12 @@
     <Dialog
       v-model:visible="showDialog"
       modal
-      header="Add New Transaction"
-      :style="{ width: '500px' }"
+      :header="editingId ? '✏️ Edit Transaction' : '💸 Add New Transaction'"
+      :style="{ width: '90vw', maxWidth: '500px' }"
       @hide="resetForm"
     >
       <form @submit.prevent="handleSubmit" class="space-y-4 pt-2">
-        <div class="flex items-center gap-3 mb-4 pb-4 border-b border-gray-200 dark:border-gray-700">
+        <div v-if="!editingId" class="flex items-center gap-3 mb-4 pb-4 border-b border-gray-200 dark:border-gray-700">
           <Button 
             type="button"
             label="Scan Receipt 📸" 
@@ -98,6 +116,7 @@
             <i class="pi pi-spin pi-spinner"></i> AI is reading your receipt...
           </span>
         </div>
+
         <div>
           <label for="title" class="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">Title</label>
           <InputText id="title" v-model="form.title" class="w-full" required />
@@ -130,6 +149,7 @@
             required
           />
         </div>
+        
         <div>
           <label for="category" class="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">Category</label>
           <Dropdown
@@ -148,15 +168,19 @@
             :required="form.category === 'Other'"
           />
         </div>
+        
         <div>
           <label for="date" class="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">Date</label>
           <Calendar id="date" v-model="form.date" class="w-full" dateFormat="yy-mm-dd" required />
         </div>
+        
         <div>
           <label for="description" class="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">Description (optional)</label>
           <Textarea id="description" v-model="form.description" class="w-full" rows="3" />
         </div>
+        
         <div v-if="submitError" class="text-red-600 dark:text-red-400 text-sm">{{ submitError }}</div>
+        
         <div class="flex gap-2 justify-end mt-6">
           <Button
             type="button"
@@ -164,7 +188,7 @@
             severity="secondary"
             @click="showDialog = false"
           />
-          <Button type="submit" label="Save" :loading="submitting" />
+          <Button type="submit" :label="editingId ? 'Update' : 'Save'" :loading="submitting" />
         </div>
       </form>
     </Dialog>
@@ -224,14 +248,12 @@ import Calendar from 'primevue/calendar'
 import Textarea from 'primevue/textarea'
 import Tag from 'primevue/tag'
 import { useConfirm } from 'primevue/useconfirm'
-import { useCurrency } from '~/composables/useCurrency' // Döviz Beyni bağlandı!
+import { useCurrency } from '~/composables/useCurrency'
 
 definePageMeta({ layout: 'default' })
 
 const { token } = useAuth()
 const confirm = useConfirm()
-
-// Döviz araçlarını alıyoruz
 const { formatCurrency, currentCurrency, getRate } = useCurrency()
 
 const showDialog = ref(false)
@@ -239,9 +261,11 @@ const showScanDialog = ref(false)
 const cameraInput = ref<HTMLInputElement | null>(null)
 const fileInput = ref<HTMLInputElement | null>(null)
 
+const editingId = ref<number | null>(null)
+
 const form = ref({
   title: '',
-  displayAmount: null as number | null, // Kullanıcının ekranda gördüğü miktar (örn: 32500 TL)
+  displayAmount: null as number | null,
   transaction_type: 'INCOME' as 'INCOME' | 'EXPENSE',
   category: '',
   customCategoryName: '',
@@ -262,20 +286,14 @@ const scanning = ref(false)
 
 const API_BASE = 'http://127.0.0.1:8000/api'
 
-const {
-  data,
-  pending,
-  error,
-  refresh,
-} = await useFetch(`${API_BASE}/transactions/`, {
-  headers: {
-    Authorization: computed(() => `Bearer ${token.value}`),
-  },
+const { data, pending, error, refresh } = await useFetch(`${API_BASE}/transactions/`, {
+  headers: { Authorization: computed(() => `Bearer ${token.value}`) },
 })
 
 const tableData = computed(() => (data.value && Array.isArray(data.value) ? data.value : []))
 
 const resetForm = () => {
+  editingId.value = null
   form.value = {
     title: '',
     displayAmount: null,
@@ -286,6 +304,31 @@ const resetForm = () => {
     description: '',
   }
   submitError.value = ''
+}
+
+const openAddModal = () => {
+  resetForm()
+  showDialog.value = true
+}
+
+const openEditModal = (tx: any) => {
+  editingId.value = tx.id
+  
+  const rate = getRate()
+  const isDefaultCategory = categoryOptions.includes(tx.category)
+  
+  form.value = {
+    title: tx.title,
+    displayAmount: Number(tx.amount) * rate,
+    transaction_type: tx.transaction_type,
+    category: isDefaultCategory ? tx.category : 'Other',
+    customCategoryName: isDefaultCategory ? '' : tx.category,
+    date: new Date(tx.date),
+    description: tx.description || '',
+  }
+  
+  submitError.value = ''
+  showDialog.value = true
 }
 
 const getCategoryToSend = () => {
@@ -329,16 +372,12 @@ async function onReceiptUpload(event: { files: File[] }) {
       `${API_BASE}/scan-receipt/`,
       {
         method: 'POST',
-        headers: {
-          Authorization: `Bearer ${token.value}`,
-        },
+        headers: { Authorization: `Bearer ${token.value}` },
         body: formData,
       }
     )
 
     form.value.title = result.title || form.value.title
-    
-    // AI'dan gelen USD'yi kullanıcının seçili dövizine çevirip ekranda gösteriyoruz
     if (result.amount != null) {
       const rate = getRate()
       form.value.displayAmount = result.amount * rate
@@ -373,32 +412,43 @@ const handleSubmit = async () => {
   submitError.value = ''
 
   try {
-    // Veritabanına kaydederken rakamı seçili kurdan tekrar USD (Base) birimine çeviriyoruz (Bölme işlemi).
-    // Böylece veritabanında her zaman USD durur, ekranda değişir.
     const rate = getRate()
     const amountInUSD = form.value.displayAmount / rate
 
-    await $fetch(`${API_BASE}/transactions/`, {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${token.value}`,
-        'Content-Type': 'application/json',
-      },
-      body: {
-        title: form.value.title,
-        amount: amountInUSD, // USD olarak gidiyor
-        transaction_type: form.value.transaction_type,
-        category: categoryToSend,
-        date: form.value.date.toISOString().split('T')[0],
-        description: form.value.description || '',
-      },
-    })
+    const payload = {
+      title: form.value.title,
+      amount: amountInUSD,
+      transaction_type: form.value.transaction_type,
+      category: categoryToSend,
+      date: form.value.date.toISOString().split('T')[0],
+      description: form.value.description || '',
+    }
+
+    if (editingId.value) {
+      await $fetch(`${API_BASE}/transactions/${editingId.value}/`, {
+        method: 'PATCH',
+        headers: {
+          Authorization: `Bearer ${token.value}`,
+          'Content-Type': 'application/json',
+        },
+        body: payload,
+      })
+    } else {
+      await $fetch(`${API_BASE}/transactions/`, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token.value}`,
+          'Content-Type': 'application/json',
+        },
+        body: payload,
+      })
+    }
 
     showDialog.value = false
     resetForm()
     await refresh()
   } catch (err: any) {
-    submitError.value = err.data?.detail || 'Failed to create transaction'
+    submitError.value = err.data?.detail || 'Failed to save transaction'
   } finally {
     submitting.value = false
   }

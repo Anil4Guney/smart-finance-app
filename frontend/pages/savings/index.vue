@@ -5,14 +5,14 @@
         <h1 class="text-3xl font-bold text-gray-900 dark:text-white transition-colors duration-300">Savings Goals</h1>
         <p class="mt-2 text-gray-600 dark:text-gray-400 transition-colors duration-300">Track your progress towards your financial dreams. 🎯</p>
       </div>
-      <Button label="Add Goal" icon="pi pi-plus" @click="showAddDialog = true" class="shadow-sm" />
+      <Button label="Add Goal" icon="pi pi-plus" @click="openAddDialog" class="shadow-sm" />
     </div>
 
     <div v-if="goals.length > 0" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
       <div 
         v-for="goal in goals" 
         :key="goal.id" 
-        class="card p-6 rounded-3xl shadow-sm bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 hover:shadow-md transition-all duration-300"
+        class="card p-6 rounded-3xl shadow-sm bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 hover:shadow-md transition-all duration-300 group"
       >
         
         <div class="flex justify-between items-start mb-6">
@@ -25,7 +25,11 @@
               <p class="text-sm font-medium text-gray-500 dark:text-gray-400 transition-colors duration-300">Target: {{ formatCurrency(goal.target_amount) }}</p>
             </div>
           </div>
-          <Button icon="pi pi-trash" text rounded severity="danger" v-tooltip.top="'Delete Goal'" @click="deleteGoal(goal.id)" />
+          
+          <div class="flex items-center gap-1 opacity-80 group-hover:opacity-100 transition-opacity">
+            <Button icon="pi pi-pencil" text rounded severity="info" size="small" v-tooltip.top="'Edit Goal'" @click="openEditDialog(goal)" />
+            <Button icon="pi pi-trash" text rounded severity="danger" size="small" v-tooltip.top="'Delete Goal'" @click="deleteGoal(goal.id)" />
+          </div>
         </div>
 
         <div class="mt-4">
@@ -46,14 +50,20 @@
        <i class="pi pi-star text-6xl text-gray-300 dark:text-gray-600 mb-6 transition-colors duration-300"></i>
        <h2 class="text-2xl font-bold text-gray-900 dark:text-white transition-colors duration-300">No goals yet!</h2>
        <p class="text-gray-500 dark:text-gray-400 mt-2 text-lg transition-colors duration-300">Create your first savings goal and start tracking your dreams.</p>
-       <Button label="Create First Goal" icon="pi pi-plus" class="mt-8" size="large" @click="showAddDialog = true" />
+       <Button label="Create First Goal" icon="pi pi-plus" class="mt-8" size="large" @click="openAddDialog" />
     </div>
 
-    <Dialog v-model:visible="showAddDialog" modal header="Create New Goal" :style="{ width: '400px' }">
+    <Dialog 
+      v-model:visible="showAddDialog" 
+      modal 
+      :header="editingGoalId ? '✏️ Edit Goal' : '🎯 Create New Goal'" 
+      :style="{ width: '90vw', maxWidth: '400px' }"
+      @hide="resetForm"
+    >
        <form @submit.prevent="saveGoal" class="flex flex-col gap-4 mt-2">
          <div class="flex flex-col gap-2">
             <label for="title" class="font-medium text-gray-700 dark:text-gray-300">Goal Name</label>
-            <InputText id="title" v-model="newGoal.title" placeholder="e.g. New Car, Vacation" required />
+            <InputText id="title" v-model="newGoal.title" placeholder="e.g. New Car, Vacation" required autofocus />
          </div>
          <div class="flex flex-col gap-2">
             <label for="target" class="font-medium text-gray-700 dark:text-gray-300">
@@ -63,12 +73,12 @@
          </div>
          <div class="flex justify-end gap-2 mt-6">
             <Button type="button" label="Cancel" severity="secondary" @click="showAddDialog = false" />
-            <Button type="submit" label="Save Goal" icon="pi pi-check" :loading="isSaving" />
+            <Button type="submit" :label="editingGoalId ? 'Update Goal' : 'Save Goal'" icon="pi pi-check" :loading="isSaving" />
          </div>
        </form>
     </Dialog>
 
-    <Dialog v-model:visible="showAddFundsDialog" modal :header="`Add Funds to ${selectedGoal?.title}`" :style="{ width: '400px' }">
+    <Dialog v-model:visible="showAddFundsDialog" modal :header="`Add Funds to ${selectedGoal?.title}`" :style="{ width: '90vw', maxWidth: '400px' }">
        <form @submit.prevent="addFunds" class="flex flex-col gap-4 mt-2">
          <div class="flex flex-col gap-2">
             <label for="fundAmount" class="font-medium text-gray-700 dark:text-gray-300">
@@ -95,28 +105,27 @@ import ProgressBar from 'primevue/progressbar'
 import Dialog from 'primevue/dialog'
 import InputText from 'primevue/inputtext'
 import InputNumber from 'primevue/inputnumber'
-import { useCurrency } from '~/composables/useCurrency' // DÖVİZ BEYNİ BAĞLANDI
+import { useCurrency } from '~/composables/useCurrency' 
 
 definePageMeta({ layout: 'default' })
 
 const { token } = useAuth()
 const API_BASE = 'http://127.0.0.1:8000/api'
 
-// Döviz Araçları
 const { formatCurrency, currentCurrency, getRate } = useCurrency()
 
 const showAddDialog = ref(false)
 const isSaving = ref(false)
-// Kullanıcının ekranda göreceği/gireceği değer "displayTarget" olarak adlandırıldı
+
+const editingGoalId = ref<number | null>(null)
+
 const newGoal = ref({ title: '', displayTarget: null as number | null })
 
 const showAddFundsDialog = ref(false)
 const isAddingFunds = ref(false)
 const selectedGoal = ref<any>(null)
-// Kullanıcının fon eklerken ekranda gireceği değer
 const displayAmountToAdd = ref<number | null>(null)
 
-// API'den Veri Çek
 const { data: rawData, refresh } = await useFetch(`${API_BASE}/savings-goals/`, {
   headers: { Authorization: computed(() => `Bearer ${token.value}`) },
 })
@@ -127,23 +136,57 @@ const getTodayDate = () => {
   return today.toISOString().split('T')[0];
 }
 
-// Yeni Hedef Kaydet (Veritabanına giderken USD'ye bölüyoruz)
+const resetForm = () => {
+  editingGoalId.value = null;
+  newGoal.value = { title: '', displayTarget: null };
+}
+
+const openAddDialog = () => {
+  resetForm();
+  showAddDialog.value = true;
+}
+
+const openEditDialog = (goal: any) => {
+  editingGoalId.value = goal.id;
+  const rate = getRate();
+  
+  newGoal.value = {
+    title: goal.title,
+    displayTarget: Number(goal.target_amount) * rate
+  };
+  showAddDialog.value = true;
+}
+
 const saveGoal = async () => {
   if (!newGoal.value.title || !newGoal.value.displayTarget) return;
   isSaving.value = true;
+  
   try {
     const rate = getRate()
     const targetInUSD = newGoal.value.displayTarget / rate
 
-    await $fetch(`${API_BASE}/savings-goals/`, {
-      method: 'POST',
-      headers: { Authorization: `Bearer ${token.value}`, 'Content-Type': 'application/json' },
-      body: { title: newGoal.value.title, target_amount: targetInUSD, current_amount: 0 }
-    });
-    newGoal.value = { title: '', displayTarget: null };
+    if (editingGoalId.value) {
+      await $fetch(`${API_BASE}/savings-goals/${editingGoalId.value}/`, {
+        method: 'PATCH',
+        headers: { Authorization: `Bearer ${token.value}`, 'Content-Type': 'application/json' },
+        body: { title: newGoal.value.title, target_amount: targetInUSD }
+      });
+    } else {
+      await $fetch(`${API_BASE}/savings-goals/`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token.value}`, 'Content-Type': 'application/json' },
+        body: { title: newGoal.value.title, target_amount: targetInUSD, current_amount: 0 }
+      });
+    }
+    
     showAddDialog.value = false;
+    resetForm();
     await refresh();
-  } catch (error) { console.error(error); } finally { isSaving.value = false; }
+  } catch (error) { 
+    console.error(error); 
+  } finally { 
+    isSaving.value = false; 
+  }
 }
 
 const deleteGoal = async (id: number) => {
@@ -163,7 +206,6 @@ const openAddFundsDialog = (goal: any) => {
   showAddFundsDialog.value = true;
 }
 
-// Para Ekleme ve Gider Kaydetme (Veritabanına giderken USD'ye bölüyoruz)
 const addFunds = async () => {
   if (!selectedGoal.value || !displayAmountToAdd.value || displayAmountToAdd.value <= 0) return;
   isAddingFunds.value = true;
@@ -172,7 +214,6 @@ const addFunds = async () => {
     const rate = getRate()
     const amountToAddInUSD = displayAmountToAdd.value / rate
 
-    // 1. Hedefin içindeki parayı USD cinsinden güncelle
     const newTotalInUSD = Number(selectedGoal.value.current_amount) + amountToAddInUSD;
     
     await $fetch(`${API_BASE}/savings-goals/${selectedGoal.value.id}/`, {
@@ -181,7 +222,6 @@ const addFunds = async () => {
       body: { current_amount: newTotalInUSD }
     });
 
-    // 2. İşlemlere (Transactions) "Gider" olarak kaydet (Yine USD cinsinden)
     await $fetch(`${API_BASE}/transactions/`, {
       method: 'POST',
       headers: { Authorization: `Bearer ${token.value}`, 'Content-Type': 'application/json' },
@@ -203,7 +243,6 @@ const addFunds = async () => {
   }
 }
 
-// Yüzde hesaplama fonksiyonu (Veritabanındaki gerçek USD değerleri üzerinden oranlarsak sonuç aynı çıkar)
 const calculatePercentage = (current: number, target: number) => {
   const numCurrent = Number(current) || 0;
   const numTarget = Number(target) || 0;
