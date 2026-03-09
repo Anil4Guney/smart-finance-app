@@ -117,7 +117,7 @@ definePageMeta({
 const { register } = useAuth()
 const router = useRouter()
 
-// YENİ: Ad ve Soyad değişkenleri eklendi
+//  Ad ve Soyad değişkenleri eklendi
 const firstName = ref('')
 const lastName = ref('')
 const username = ref('')
@@ -131,7 +131,7 @@ const handleRegister = async () => {
   error.value = ''
   loading.value = true
   
-  // YENİ: Bilgiler Backend'e tam takım gönderiliyor
+  // Bilgiler Backend'e tam takım gönderiliyor
   const result = await register(
     username.value, 
     password.value, 

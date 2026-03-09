@@ -1,0 +1,10 @@
+# Python & Django gereksiz dosyaları
+venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+db.sqlite3
+
+# Çevresel değişkenleri de izole etmek iyi bir pratiktir
+.env

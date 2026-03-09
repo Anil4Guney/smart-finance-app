@@ -1,0 +1,10 @@
+# Node.js ve Nuxt gereksiz/ağır dosyaları
+node_modules/
+.nuxt/
+.output/
+dist/
+npm-debug.log
+yarn-error.log
+
+# Çevresel değişkenler
+.env

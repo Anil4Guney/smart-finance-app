@@ -1,0 +1,23 @@
+version: '3.8'
+
+services:
+  backend:
+    build: ./backend
+    container_name: smart_finance_backend
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./backend:/app # Kodda yaptığın değişiklikler anında yansısın diye
+    env_file:
+      - ./backend/.env # Gemini API Key gibi şifrelerini buradan okur
+
+  frontend:
+    build: ./frontend
+    container_name: smart_finance_frontend
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./frontend:/app # Canlı yenileme (Hot Reload) için
+      - /app/node_modules # Kendi içindeki node_modules'u koruması için
+    depends_on:
+      - backend # Önce backend'in çalışmasını bekler
