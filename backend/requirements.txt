@@ -1,4 +1,4 @@
-django>=5.0,<6.0
+django
 django-cors-headers
 djangorestframework
 djangorestframework-simplejwt
@@ -6,4 +6,3 @@ djoser
 google-generativeai
 python-dotenv
 gunicorn
-psycopg2-binary
