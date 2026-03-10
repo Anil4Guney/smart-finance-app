@@ -1,7 +1,5 @@
 #  SmartFinance - AI-Powered Personal Finance Manager
 
-
-
 <div align="center">
   <img src="https://img.shields.io/badge/Vue.js-35495E?style=for-the-badge&logo=vuedotjs&logoColor=4FC08D" alt="Vue.js" />
   <img src="https://img.shields.io/badge/Nuxt-002E3B?style=for-the-badge&logo=nuxtdotjs&logoColor=#00DC82" alt="Nuxt" />
@@ -13,24 +11,25 @@
 
 <br>
 
+*(Buraya projenin nasıl çalıştığını gösteren kısa bir YouTube veya GIF linki ekleyencek)*
+
 ---
-
-
 
 SmartFinance is a modern, full-stack personal finance application designed to help users track their expenses, manage monthly budgets, and achieve their savings goals. Built with a focus on automation and artificial intelligence, it acts as a smart companion for your financial journey.
 
 ###  Key Features
 * **AI Financial Advisor:** Context-aware chatbot powered by Google Gemini AI that analyzes your current financial state, spending habits, and provides personalized insights.
 * **OCR Receipt Scanning:** Instantly extract amounts, titles, and dates from physical receipts using AI vision models.
+* **Smart Auto-Billing:** Intelligent subscription management system that automatically checks due dates and generates expense records to prevent missed tracking.
+* **Secure Authentication:** Robust user authentication and persistent profile synchronization using JWT tokens and Django Djoser.
 * **Advanced Analytics:** Interactive charts and a dynamic 6-month cash flow trend analyzer built with PrimeVue and Chart.js.
-* **Automated Subscriptions:** Background tasks (cron jobs) via custom Django Management Commands automatically deduct upcoming bills from your balance on their due dates.
 * **Savings Goals & Budgets:** Track your journey toward financial milestones with visual progress bars and dynamic budget limits.
 * **Mobile-First Responsive Design:** Flawless UI experience across desktops, tablets, and smartphones using Tailwind CSS.
 * **Fully Dockerized:** Ready for production with containerized isolated environments for both frontend and backend.
 
 ###  Tech Stack
 * **Frontend:** Nuxt 3, Vue 3 (Composition API), Tailwind CSS, PrimeVue
-* **Backend:** Python 3, Django, Django REST Framework (DRF)
+* **Backend:** Python 3, Django, Django REST Framework (DRF), Djoser (Auth)
 * **Database:** SQLite (Dev) / PostgreSQL (Prod)
 * **DevOps & Tools:** Docker, Docker Compose, Git
 
