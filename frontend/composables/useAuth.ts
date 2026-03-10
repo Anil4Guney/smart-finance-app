@@ -1,24 +1,22 @@
 export const useAuth = () => {
   const token = useCookie<string | null>('auth_token', {
     default: () => null,
-    maxAge: 60 * 60 * 24, // 1 day
+    maxAge: 60 * 60 * 24, // 1 gün
   })
 
-  // YENİ: Kullanıcı bilgilerini tutacağımız global state (hafıza)
   const user = useState<any>('auth_user', () => null)
-
   const isAuthenticated = computed(() => !!token.value)
 
-  // YENİ: Token ile Backend'den aktif kullanıcının tüm bilgilerini (Ad, Soyad, Email) çeker
+  // DOĞRU ADRES: /api YOK! Sadece /auth/
+  const AUTH_BASE = 'http://127.0.0.1:8000/auth'
+
   const fetchUser = async () => {
     if (!token.value) return
     try {
-      const response = await $fetch<any>('http://127.0.0.1:8000/auth/users/me/', {
-        headers: {
-          Authorization: `Bearer ${token.value}`
-        }
+      const response = await $fetch<any>(`${AUTH_BASE}/users/me/`, {
+        headers: { Authorization: `Bearer ${token.value}` }
       })
-      user.value = response // Gelen veriyi (first_name, last_name, vb.) hafızaya yaz
+      user.value = response
     } catch (error) {
       console.error('Kullanıcı bilgileri çekilemedi:', error)
       user.value = null
@@ -28,67 +26,62 @@ export const useAuth = () => {
   const login = async (username: string, password: string) => {
     try {
       const response = await $fetch<{ access: string; refresh: string }>(
-        'http://127.0.0.1:8000/auth/jwt/create/',
+        `${AUTH_BASE}/jwt/create/`,
         {
           method: 'POST',
-          body: {
-            username,
-            password,
-          },
+          body: { username, password },
         }
       )
       token.value = response.access
-      
-      // YENİ: Giriş başarılı olunca kullanıcının adını/soyadını hemen çek!
-      await fetchUser()
-      
+      await fetchUser() 
       return { success: true }
     } catch (error: any) {
       return { success: false, error: error.data?.detail || 'Login failed' }
     }
   }
 
-  // YENİ: Kayıt olurken Ad (first_name) ve Soyad (last_name) de istiyoruz
   const register = async (username: string, password: string, email: string, first_name: string, last_name: string) => {
     try {
-      await $fetch('http://127.0.0.1:8000/auth/users/', {
+      // 1. Önce Django'ya (Djoser) Kayıt Ol
+      await $fetch(`${AUTH_BASE}/users/`, {
         method: 'POST',
-        body: {
-          username,
-          password,
-          email,
-          first_name, // Backend'e adı gönder
-          last_name,  // Backend'e soyadı gönder
-        },
+        body: { username, password, email },
       })
-      // Auto login after registration
-      return await login(username, password)
-    } catch (error: any) {
-      return {
-        success: false,
-        error: error.data?.username?.[0] || error.data?.password?.[0] || 'Registration failed',
+      
+      // 2. Anında Otomatik Giriş Yap
+      const loginResult = await login(username, password)
+
+      // 3. Giriş başarılıysa anında Ad ve Soyadı veritabanına kaydet (Sihir burada!)
+      if (loginResult.success && token.value) {
+        await $fetch(`${AUTH_BASE}/users/me/`, {
+          method: 'PATCH',
+          headers: { Authorization: `Bearer ${token.value}` },
+          body: { first_name, last_name }
+        })
+        await fetchUser() 
       }
+
+      return loginResult
+    } catch (error: any) {
+      // Hatayı net görebilmek için yakalama kodunu geliştirdim
+      const errMsg = error.data?.username?.[0] || error.data?.email?.[0] || error.data?.password?.[0] || 'Registration failed'
+      return { success: false, error: errMsg }
     }
   }
 
   const logout = () => {
     token.value = null
-    user.value = null // Çıkış yapınca kullanıcı verisini de temizle
-    navigateTo('/login')
+    user.value = null 
+    if (import.meta.client) {
+      localStorage.removeItem('user')
+      localStorage.removeItem('budgetLimits') 
+      window.location.href = '/login'
+    }
   }
 
-  // Sayfa ilk yüklendiğinde token varsa kullanıcıyı getir (F5 atınca isim kaybolmasın diye)
   if (token.value && !user.value) {
     fetchUser()
   }
 
-  return {
-    token,
-    user, // Bileşenlere (Header, Profile vb.) user bilgisini açıyoruz
-    isAuthenticated,
-    login,
-    register,
-    logout,
-    fetchUser
-  }
+  return { token, user, isAuthenticated, login, register, logout, fetchUser }
 }

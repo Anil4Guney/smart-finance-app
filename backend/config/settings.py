@@ -21,6 +21,10 @@ if not GEMINI_API_KEY and os.path.exists(env_path):
                 GEMINI_API_KEY = line.split('=', 1)[1].strip().strip('\'"')
                 os.environ["GEMINI_API_KEY"] = GEMINI_API_KEY
 
+if GEMINI_API_KEY:
+    # Google'ın kütüphanesi hata vermesin diye şifreyi onun istediği isme de kopyalıyoruz!
+    os.environ["GOOGLE_API_KEY"] = GEMINI_API_KEY
+
 print("\n" + "="*40)
 if GEMINI_API_KEY:
     print(" Şifre alındı!")
@@ -125,11 +129,13 @@ SIMPLE_JWT = {
     'ROTATE_REFRESH_TOKENS': True,
 }
 
-# --- Djoser Ayarları ---
+# --- DİKKAT: DJOSER AYARLARI GÜNCELLENDİ! ---
 DJOSER = {
     'SERIALIZERS': {
-        'user_create': 'djoser.serializers.UserCreateSerializer',
-        'user': 'djoser.serializers.UserSerializer',
+        # Artık Djoser'ın standart ayarlarını değil, bizim finance uygulamasındaki ayarları kullanacak!
+        'user_create': 'finance.serializers.CustomUserCreateSerializer',
+        'user': 'finance.serializers.CustomUserSerializer',
+        'current_user': 'finance.serializers.CustomUserSerializer',
     },
     'PERMISSIONS': {
         'user': ['rest_framework.permissions.IsAuthenticated'],

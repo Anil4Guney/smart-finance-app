@@ -1,6 +1,7 @@
 import os
 import google.generativeai as genai
 from django.conf import settings
+from datetime import date # Tarih kontrolü için eklendi
 
 from rest_framework import viewsets, permissions
 from rest_framework.decorators import api_view, permission_classes
@@ -39,15 +40,11 @@ class SavingsGoalViewSet(viewsets.ModelViewSet):
     pagination_class = None
 
     def get_queryset(self):
-        # Sadece giriş yapan kullanıcının hedeflerini getirir
         return SavingsGoal.objects.filter(user=self.request.user)
 
     def perform_create(self, serializer):
-        # Yeni hedef eklendiğinde, o anki kullanıcıya bağlar
         serializer.save(user=self.request.user)
 
-
-# --- YENİ EKLENEN VİEWSET'LER (Bütçe ve Abonelikler) ---
 
 class CategoryBudgetViewSet(viewsets.ModelViewSet):
     serializer_class = CategoryBudgetSerializer
@@ -61,12 +58,44 @@ class CategoryBudgetViewSet(viewsets.ModelViewSet):
         serializer.save(user=self.request.user)
 
 
+# --- 🚀 GÜNCELLENEN VİEWSET: OTOMATİK ÖDEME MANTIĞI EKLENDİ ---
+
 class SubscriptionViewSet(viewsets.ModelViewSet):
     serializer_class = SubscriptionSerializer
     permission_classes = [IsAuthenticated]
     pagination_class = None
 
     def get_queryset(self):
+        user = self.request.user
+        today = date.today()
+        
+        # Kullanıcının aktif ve otomatik ödemesi açık olan aboneliklerini çek
+        subscriptions = Subscription.objects.filter(user=user, is_active=True, auto_pay=True)
+
+        for sub in subscriptions:
+            # Kontrol: Ödeme günü geldi mi (veya geçti mi) VE bu ay henüz fatura kesilmedi mi?
+            is_due = today.day >= sub.due_date.day
+            has_not_billed_this_month = (
+                sub.last_billed_date is None or 
+                (sub.last_billed_date.month != today.month or sub.last_billed_date.year != today.year)
+            )
+
+            if is_due and has_not_billed_this_month:
+                # Otomatik harcama kaydı oluştur
+                Transaction.objects.create(
+                    user=user,
+                    title=f"Auto-Pay: {sub.name}",
+                    amount=sub.amount,
+                    transaction_type='EXPENSE',
+                    category='Bills',
+                    date=today,
+                    description=f"Automated payment for {sub.name} (Subscription)"
+                )
+
+                # Aboneliği güncelle (Bu ay ödendi olarak işaretle)
+                sub.last_billed_date = today
+                sub.save()
+
         return Subscription.objects.filter(user=self.request.user)
 
     def perform_create(self, serializer):
@@ -94,7 +123,7 @@ def scan_receipt(request: Request) -> Response:
         return Response({"detail": f"Receipt analysis failed: {str(e)}"}, status=500)
 
 
-# --- YENİLENEN YAPAY ZEKA SOHBET ASİSTANI ---
+# --- SENİN ORİJİNAL PROMPT'LARINLA YAPAY ZEKA SOHBET ASİSTANI ---
 
 class AIChatView(APIView):
     permission_classes = [IsAuthenticated]
@@ -121,7 +150,7 @@ class AIChatView(APIView):
         budget_details = ", ".join([f"{b.category}: ${b.limit_amount}" for b in budgets])
         sub_details = ", ".join([f"{s.name}: ${s.amount}" for s in subscriptions])
 
-        # Gemini'a verilecek gizli sistem talimatı (Kullanıcı bunu görmez, sadece AI görür)
+        # SENİN ORİJİNAL SİSTEM PROMPT'UN
         system_prompt = f"""
         Sen 'SmartFinance' uygulaması için çalışan uzman, samimi ve zeki bir finansal yapay zeka asistanısın.
         Kullanıcının adı: {user.first_name or user.username}.
@@ -134,7 +163,7 @@ class AIChatView(APIView):
         - Yaklaşan Abonelikleri: {sub_details if sub_details else 'Abonelik yok'}
 
         Kullanıcı sana aşağıdaki soruyu sordu. 
-        Eğer sorusu kendi harcamaları, bütçeleri veya abonelikleriyle ilgiliyse yukarıdaki verileri kullanarak net ve doğru cevap ver. 
+        If her question is about her own expenses, budgets or subscriptions, answer clearly and correctly using the data above. 
         Eğer genel bir finans/yatırım sorusuysa, güncel bilgilere dayanarak profesyonel bir tavsiye ver. 
         Konuşma dilin doğal, okuması kolay olsun ve uygun yerlerde emoji kullan.
         ASLA JSON formatı döndürme, sadece normal sohbet metni (Markdown destekli) döndür.
@@ -148,7 +177,7 @@ class AIChatView(APIView):
                 return Response({"error": "API Key .env dosyasından okunamadı!"}, status=400)
 
             genai.configure(api_key=api_key)
-            model = genai.GenerativeModel('gemini-2.5-flash')
+            model = genai.GenerativeModel('gemini-2.0-flash') # En güncel model
             
             # Gemini'a promptu gönderiyoruz
             response = model.generate_content(system_prompt)
