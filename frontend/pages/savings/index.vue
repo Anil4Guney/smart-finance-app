@@ -56,6 +56,7 @@
     <Dialog 
       v-model:visible="showAddDialog" 
       modal 
+      :draggable="false"
       :header="editingGoalId ? '✏️ Edit Goal' : '🎯 Create New Goal'" 
       :style="{ width: '90vw', maxWidth: '400px' }"
       @hide="resetForm"
@@ -78,7 +79,13 @@
        </form>
     </Dialog>
 
-    <Dialog v-model:visible="showAddFundsDialog" modal :header="`Add Funds to ${selectedGoal?.title}`" :style="{ width: '90vw', maxWidth: '400px' }">
+    <Dialog 
+      v-model:visible="showAddFundsDialog" 
+      modal 
+      :draggable="false"
+      :header="`Add Funds to ${selectedGoal?.title}`" 
+      :style="{ width: '90vw', maxWidth: '400px' }"
+    >
        <form @submit.prevent="addFunds" class="flex flex-col gap-4 mt-2">
          <div class="flex flex-col gap-2">
             <label for="fundAmount" class="font-medium text-gray-700 dark:text-gray-300">

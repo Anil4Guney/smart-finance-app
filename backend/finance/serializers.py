@@ -1,5 +1,27 @@
 from rest_framework import serializers
+from djoser.serializers import UserSerializer as BaseUserSerializer
+from djoser.serializers import UserCreateSerializer as BaseUserCreateSerializer
+from django.contrib.auth import get_user_model
 from .models import Transaction, SavingsGoal, CategoryBudget, Subscription
+
+User = get_user_model()
+
+# --- 🚀 YENİ: DJOSER İÇİN ÖZEL KULLANICI SERIALIZER'LARI ---
+
+# 1. Kayıt Olurken (Register) Ad ve Soyadı kabul etmesi için
+class CustomUserCreateSerializer(BaseUserCreateSerializer):
+    class Meta(BaseUserCreateSerializer.Meta):
+        model = User
+        fields = ('id', 'username', 'email', 'password', 'first_name', 'last_name')
+
+# 2. Profil güncellerken ve veri çekerken Ad ve Soyadı vermesi için
+class CustomUserSerializer(BaseUserSerializer):
+    class Meta(BaseUserSerializer.Meta):
+        model = User
+        fields = ('id', 'username', 'email', 'first_name', 'last_name')
+
+
+# --- MEVCUT SENİN SERIALIZER'LARIN ---
 
 class TransactionSerializer(serializers.ModelSerializer):
     class Meta:
@@ -31,8 +53,6 @@ class SavingsGoalSerializer(serializers.ModelSerializer):
         validated_data['user'] = self.context['request'].user
         return super().create(validated_data)
 
-
-# --- YENİ EKLENEN SERIALIZER'LAR ---
 
 class CategoryBudgetSerializer(serializers.ModelSerializer):
     class Meta:

@@ -97,7 +97,8 @@
     <Dialog
       v-model:visible="showDialog"
       modal
-      :header="editingId ? '✏️ Edit Transaction' : '💸 Add New Transaction'"
+      :draggable="false"
+      :header="editingId ? ' Edit Transaction' : ' Add New Transaction'"
       :style="{ width: '90vw', maxWidth: '500px' }"
       @hide="resetForm"
     >
@@ -105,7 +106,7 @@
         <div v-if="!editingId" class="flex items-center gap-3 mb-4 pb-4 border-b border-gray-200 dark:border-gray-700">
           <Button 
             type="button"
-            label="Scan Receipt 📸" 
+            label="Scan Receipt " 
             icon="pi pi-camera"
             class="p-button-outlined p-button-success"
             :disabled="submitting || scanning"
@@ -195,6 +196,7 @@
     <Dialog 
       v-model:visible="showScanDialog" 
       modal 
+      :draggable="false"
       header="Upload Receipt" 
       :style="{ width: '90vw', maxWidth: '350px' }"
     >
