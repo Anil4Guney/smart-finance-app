@@ -11,7 +11,9 @@
 
 <br>
 
+# Smart Finance App
 
+**Live Demo:** [https://smart-finance-app-kohl.vercel.app](https://smart-finance-app-kohl.vercel.app)
 
 
 https://github.com/user-attachments/assets/38f081ff-1e76-4fa8-9f93-eca949cf889a
