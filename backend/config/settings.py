@@ -37,7 +37,11 @@ SECRET_KEY = 'django-insecure-change-this-in-production-smartfinance'
 
 DEBUG = True
 
-ALLOWED_HOSTS = ['localhost', '127.0.0.1']
+ALLOWED_HOSTS = [
+    'localhost', 
+    '127.0.0.1',
+    'smart-finance-app-6lgi.onrender.com'
+]
 
 INSTALLED_APPS = [
     'django.contrib.admin',
@@ -146,6 +150,7 @@ DJOSER = {
 CORS_ALLOWED_ORIGINS = [
     'http://localhost:3000',
     'http://127.0.0.1:3000',
+    'https://smart-finance-app-kohl.vercel.app'
 ]
 CORS_ALLOW_ALL_ORIGINS = True
 CORS_ALLOW_CREDENTIALS = True
