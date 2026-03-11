@@ -120,7 +120,7 @@ const toast = useToast()
 const { user, token } = useAuth() 
 
 // DOĞRU ADRES: /api YOK! Sadece /auth
-const AUTH_BASE = 'http://127.0.0.1:8000/auth'
+const API_BASE = 'https://smart-finance-app-6lgi.onrender.com/api'
 
 const showEditDialog = ref(false)
 const isSavingProfile = ref(false)
@@ -145,7 +145,7 @@ const saveProfile = async () => {
   
   try {
     // Doğru Endpoint: http://127.0.0.1:8000/auth/users/me/
-    await $fetch(`${AUTH_BASE}/users/me/`, {
+    await $fetch('https://smart-finance-app-6lgi.onrender.com/auth/users/me/', {
       method: 'PATCH',
       headers: {
         'Authorization': `Bearer ${token.value}`,

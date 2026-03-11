@@ -117,7 +117,7 @@ import { useCurrency } from '~/composables/useCurrency'
 definePageMeta({ layout: 'default' })
 
 const { token } = useAuth()
-const API_BASE = 'http://127.0.0.1:8000/api'
+const API_BASE = 'https://smart-finance-app-6lgi.onrender.com/api'
 
 const { formatCurrency, currentCurrency, getRate } = useCurrency()
 

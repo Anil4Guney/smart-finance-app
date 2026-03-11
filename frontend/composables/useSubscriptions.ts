@@ -4,7 +4,7 @@ import { useAuth } from '~/composables/useAuth'
 
 export const useSubscriptions = () => {
   const { token } = useAuth()
-  const API_BASE = 'http://127.0.0.1:8000/api'
+  const API_BASE = 'https://smart-finance-app-6lgi.onrender.com/api'
 
   const subscriptions = useState<any[]>('global_subscriptions', () => [])
   const dismissedNotifs = useState<number[]>('dismissed_notifs', () => [])
