@@ -6,3 +6,4 @@ djoser
 google-generativeai
 python-dotenv
 gunicorn
+Pillow
