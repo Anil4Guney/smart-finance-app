@@ -8,7 +8,7 @@ export const useAuth = () => {
   const isAuthenticated = computed(() => !!token.value)
 
   // DOĞRU ADRES: /api YOK! Sadece /auth/
-  const AUTH_BASE = 'http://127.0.0.1:8000/auth'
+  const AUTH_BASE = 'https://smart-finance-app-6lgi.onrender.com/auth'
 
   const fetchUser = async () => {
     if (!token.value) return

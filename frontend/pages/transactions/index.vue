@@ -285,7 +285,7 @@ const submitError = ref('')
 const submitting = ref(false)
 const scanning = ref(false)
 
-const API_BASE = 'http://127.0.0.1:8000/api'
+const API_BASE = 'https://smart-finance-app-6lgi.onrender.com/api'
 
 const { data, pending, error, refresh } = await useFetch(`${API_BASE}/transactions/`, {
   headers: { Authorization: computed(() => `Bearer ${token.value}`) },
