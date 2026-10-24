@@ -4,7 +4,7 @@ import { useAuth } from '~/composables/useAuth'
 
 export const useSubscriptions = () => {
   const { token } = useAuth()
-  const API_BASE = 'https://smart-finance-app-6lgi.onrender.com/api'
+  const { API_BASE } = useApiBase()
 
   const subscriptions = useState<any[]>('global_subscriptions', () => [])
   const dismissedNotifs = useState<number[]>('dismissed_notifs', () => [])
@@ -20,7 +20,7 @@ export const useSubscriptions = () => {
         id: sub.id,
         name: sub.name,
         amount: Number(sub.amount),
-        dueDate: new Date(sub.due_date),
+        dueDate: fromApiDate(sub.due_date),
         icon: sub.icon,
         colorClass: sub.color_class
       }))
@@ -37,7 +37,7 @@ export const useSubscriptions = () => {
         body: {
           name: sub.name,
           amount: sub.amount,
-          due_date: sub.dueDate.toISOString().split('T')[0],
+          due_date: toApiDate(sub.dueDate),
           icon: sub.icon,
           color_class: sub.colorClass,
           is_active: true
@@ -47,7 +47,7 @@ export const useSubscriptions = () => {
         id: newSub.id,
         name: newSub.name,
         amount: Number(newSub.amount),
-        dueDate: new Date(newSub.due_date),
+        dueDate: fromApiDate(newSub.due_date),
         icon: newSub.icon,
         colorClass: newSub.color_class
       })
@@ -65,7 +65,7 @@ export const useSubscriptions = () => {
         body: {
           name: sub.name,
           amount: sub.amount,
-          due_date: sub.dueDate.toISOString().split('T')[0]
+          due_date: toApiDate(sub.dueDate)
         }
       })
       
@@ -76,7 +76,7 @@ export const useSubscriptions = () => {
           ...subscriptions.value[index], // İkon gibi değişmeyen verileri koru
           name: updatedSub.name,
           amount: Number(updatedSub.amount),
-          dueDate: new Date(updatedSub.due_date)
+          dueDate: fromApiDate(updatedSub.due_date)
         }
       }
     } catch (error) {

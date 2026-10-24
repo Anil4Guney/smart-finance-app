@@ -2,7 +2,7 @@
 Business logic services (e.g. AI receipt scanning).
 """
 import json
-import os
+from django.conf import settings
 import re
 from io import BytesIO
 
@@ -26,9 +26,9 @@ def analyze_receipt(image_file) -> dict:
     Use Gemini 1.5 Flash to extract receipt data from an image.
     Returns dict with keys: title, amount, date, category.
     """
-    api_key = os.getenv("GOOGLE_API_KEY")
+    api_key = settings.GEMINI_API_KEY
     if not api_key:
-        raise ValueError("GOOGLE_API_KEY environment variable is not set")
+        raise ValueError("AI service is not configured (GEMINI_API_KEY is missing).")
 
     genai.configure(api_key=api_key)
     model = genai.GenerativeModel("gemini-2.5-flash")

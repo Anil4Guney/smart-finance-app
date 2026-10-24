@@ -117,7 +117,7 @@ import { useCurrency } from '~/composables/useCurrency'
 definePageMeta({ layout: 'default' })
 
 const { token } = useAuth()
-const API_BASE = 'https://smart-finance-app-6lgi.onrender.com/api'
+const { API_BASE } = useApiBase()
 
 const { formatCurrency, currentCurrency, getRate } = useCurrency()
 
@@ -140,7 +140,7 @@ const goals = computed(() => (rawData.value && Array.isArray(rawData.value) ? ra
 
 const getTodayDate = () => {
   const today = new Date();
-  return today.toISOString().split('T')[0];
+  return toApiDate(today);
 }
 
 const resetForm = () => {

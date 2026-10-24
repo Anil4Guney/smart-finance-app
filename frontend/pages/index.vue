@@ -213,7 +213,7 @@ definePageMeta({ layout: 'default' })
 
 const router = useRouter()
 const { token, user } = useAuth()
-const API_BASE = 'https://smart-finance-app-6lgi.onrender.com/api'
+const { API_BASE } = useApiBase()
 const { formatCurrency } = useCurrency()
 
 const { loadSubscriptions, subscriptions, getDaysLeft, getRelativeDateString } = useSubscriptions()
@@ -225,11 +225,14 @@ const transactions = computed(() => (data.value && Array.isArray(data.value) ? d
 
 const savedBudgets = ref<Record<string, number>>({}) 
 
-onMounted(() => {
-  loadSubscriptions() 
-  const stored = localStorage.getItem('budgetLimits')
-  if (stored) {
-    savedBudgets.value = JSON.parse(stored)
+const { fetchBudgets } = useBudgets()
+
+onMounted(async () => {
+  loadSubscriptions()
+  try {
+    savedBudgets.value = await fetchBudgets()
+  } catch (error) {
+    console.error('Budgets could not be loaded:', error)
   }
 })
 

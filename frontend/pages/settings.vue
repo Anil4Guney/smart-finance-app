@@ -211,7 +211,7 @@ definePageMeta({ layout: 'default' })
 const toast = useToast()
 const { currentCurrency, setCurrency, getRate } = useCurrency()
 const { token } = useAuth()
-const API_BASE = 'https://smart-finance-app-6lgi.onrender.com/api'
+const { API_BASE, AUTH_BASE } = useApiBase()
 
 // --- BÜTÇE İŞLEMLERİ ---
 const isSavingBudgets = ref(false)
@@ -222,22 +222,30 @@ const budgets = ref({
   Entertainment: null as number | null,
 })
 
-onMounted(() => {
-  const savedBudgets = localStorage.getItem('budgetLimits')
-  if (savedBudgets) {
-    const parsed = JSON.parse(savedBudgets)
-    const rate = getRate()
-    budgets.value = {
-      Food: parsed.Food ? parsed.Food * rate : null,
-      Rent: parsed.Rent ? parsed.Rent * rate : null,
-      Transport: parsed.Transport ? parsed.Transport * rate : null,
-      Entertainment: parsed.Entertainment ? parsed.Entertainment * rate : null,
-    }
+const { fetchBudgets, saveBudgets: saveBudgetsToServer } = useBudgets()
+
+// Budgets are stored in USD; show them in the selected currency.
+const showBudgets = (stored: Record<string, number>) => {
+  const rate = getRate()
+  budgets.value = {
+    Food: stored.Food ? stored.Food * rate : null,
+    Rent: stored.Rent ? stored.Rent * rate : null,
+    Transport: stored.Transport ? stored.Transport * rate : null,
+    Entertainment: stored.Entertainment ? stored.Entertainment * rate : null,
   }
+}
+
+onMounted(async () => {
   isDark.value = localStorage.getItem('theme') === 'dark'
+  try {
+    showBudgets(await fetchBudgets())
+  } catch (error) {
+    console.error('Budgets could not be loaded:', error)
+    toast.add({ severity: 'error', summary: 'Error', detail: 'Could not load your budgets.', life: 3000 })
+  }
 })
 
-const saveBudgets = () => {
+const saveBudgets = async () => {
   isSavingBudgets.value = true
   const rate = getRate()
   const baseBudgets = {
@@ -247,11 +255,15 @@ const saveBudgets = () => {
     Entertainment: budgets.value.Entertainment ? budgets.value.Entertainment / rate : null,
   }
 
-  setTimeout(() => {
-    localStorage.setItem('budgetLimits', JSON.stringify(baseBudgets))
+  try {
+    showBudgets(await saveBudgetsToServer(baseBudgets))
+    toast.add({ severity: 'success', summary: 'Success', detail: 'Budgets saved successfully!', life: 3000 })
+  } catch (error) {
+    console.error('Budgets could not be saved:', error)
+    toast.add({ severity: 'error', summary: 'Error', detail: 'Budgets could not be saved.', life: 3000 })
+  } finally {
     isSavingBudgets.value = false
-    toast.add({ severity: 'success', summary: 'Success', detail: 'Budgets saved successfully!', life: 3000 });
-  }, 600)
+  }
 }
 
 // DÖVİZ İŞLEMLERİ
@@ -341,22 +353,40 @@ const openPasswordDialog = () => {
   showPasswordDialog.value = true
 }
 
-const updatePassword = () => {
+const updatePassword = async () => {
   passwordError.value = ''
   if (passwordForm.value.newPassword !== passwordForm.value.confirmPassword) {
     passwordError.value = 'New passwords do not match!'
     return
   }
-  if (passwordForm.value.newPassword.length < 6) {
-    passwordError.value = 'Password must be at least 6 characters long.'
+  if (passwordForm.value.newPassword.length < 8) {
+    passwordError.value = 'Password must be at least 8 characters long.'
     return
   }
   isUpdatingPassword.value = true
-  setTimeout(() => {
-    isUpdatingPassword.value = false
+  try {
+    await $fetch(`${AUTH_BASE}/users/set_password/`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token.value}` },
+      body: {
+        current_password: passwordForm.value.currentPassword,
+        new_password: passwordForm.value.newPassword,
+      },
+    })
     showPasswordDialog.value = false
-    toast.add({ severity: 'success', summary: 'Updated', detail: 'Password changed successfully!', life: 3000 });
-  }, 1000)
+    toast.add({ severity: 'success', summary: 'Updated', detail: 'Password changed successfully!', life: 3000 })
+  } catch (error: any) {
+    // Django returns field errors, e.g. { current_password: ["Invalid password."] }
+    const data = error?.data || {}
+    passwordError.value =
+      data.current_password?.[0] ||
+      data.new_password?.[0] ||
+      data.non_field_errors?.[0] ||
+      data.detail ||
+      'Password could not be changed. Please try again.'
+  } finally {
+    isUpdatingPassword.value = false
+  }
 }
 </script>
 

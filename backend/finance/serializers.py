@@ -75,13 +75,22 @@ class SubscriptionSerializer(serializers.ModelSerializer):
             'amount', 
             'due_date', 
             'icon', 
-            'color_class', 
-            'is_active', 
+            'color_class',
+            'is_active',
+            'auto_pay',
+            'last_billed_date',
             'created_at'
         ]
-        read_only_fields = ['id', 'created_at']
+        read_only_fields = ['id', 'last_billed_date', 'created_at']
 
     def create(self, validated_data):
         # Aboneliği ekleyen kullanıcıyı otomatik olarak ata
         validated_data['user'] = self.context['request'].user
+        validated_data['billing_day'] = validated_data['due_date'].day
         return super().create(validated_data)
+
+    def update(self, instance, validated_data):
+        # Kullanıcı ödeme tarihini değiştirirse fatura günü de onu takip eder
+        if 'due_date' in validated_data:
+            validated_data['billing_day'] = validated_data['due_date'].day
+        return super().update(instance, validated_data)

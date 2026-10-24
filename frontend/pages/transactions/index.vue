@@ -285,7 +285,7 @@ const submitError = ref('')
 const submitting = ref(false)
 const scanning = ref(false)
 
-const API_BASE = 'https://smart-finance-app-6lgi.onrender.com/api'
+const { API_BASE } = useApiBase()
 
 const { data, pending, error, refresh } = await useFetch(`${API_BASE}/transactions/`, {
   headers: { Authorization: computed(() => `Bearer ${token.value}`) },
@@ -324,7 +324,7 @@ const openEditModal = (tx: any) => {
     transaction_type: tx.transaction_type,
     category: isDefaultCategory ? tx.category : 'Other',
     customCategoryName: isDefaultCategory ? '' : tx.category,
-    date: new Date(tx.date),
+    date: fromApiDate(tx.date),
     description: tx.description || '',
   }
   
@@ -421,7 +421,7 @@ const handleSubmit = async () => {
       amount: amountInUSD,
       transaction_type: form.value.transaction_type,
       category: categoryToSend,
-      date: form.value.date.toISOString().split('T')[0],
+      date: toApiDate(form.value.date),
       description: form.value.description || '',
     }
 

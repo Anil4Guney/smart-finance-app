@@ -69,11 +69,15 @@ class Subscription(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='subscriptions')
     name = models.CharField(max_length=255)
     amount = models.DecimalField(max_digits=10, decimal_places=2)
-    due_date = models.DateField() # Başlangıç/Sıradaki ödeme günü
-    
+    # Next payment date. Moved forward one month each time the bill is paid.
+    due_date = models.DateField()
+    # Day of month the bill is due (1-31). Kept separately so a bill on the 31st
+    # returns to the 31st after a short month instead of drifting to the 30th.
+    billing_day = models.PositiveSmallIntegerField(null=True, blank=True)
+
     # --- OTOMATİK ÖDEME İÇİN ALANLAR ---
     auto_pay = models.BooleanField(default=True) # Otomatik işlemlere eklensin mi?
-    last_billed_date = models.DateField(null=True, blank=True) # En son hangi ayın faturası kesildi?
+    last_billed_date = models.DateField(null=True, blank=True) # En son otomatik ödeme tarihi
     # ---------------------------------------
 
     icon = models.CharField(max_length=50, default='pi-credit-card')

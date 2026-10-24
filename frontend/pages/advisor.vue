@@ -86,7 +86,7 @@ import { useAuth } from '~/composables/useAuth'
 definePageMeta({ layout: 'default' })
 
 const { user, token } = useAuth()
-const API_BASE = 'https://smart-finance-app-6lgi.onrender.com/api'
+const { API_BASE } = useApiBase()
 
 // Kullanıcının adını al (yoksa 'there' kullan)
 const firstName = user.value?.first_name || user.value?.username || 'there'

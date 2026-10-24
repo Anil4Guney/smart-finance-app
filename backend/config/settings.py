@@ -1,49 +1,58 @@
 """
-Django settings for SmartFinance config project.
+Django settings for SmartFinance.
+
+All secrets and environment-specific values come from environment variables
+(or backend/.env in local development). See .env.example.
 """
-from pathlib import Path
 import os
-from dotenv import load_dotenv
+from datetime import timedelta
+from pathlib import Path
 
 import dj_database_url
+from django.core.exceptions import ImproperlyConfigured
+from dotenv import load_dotenv
 
 BASE_DIR = Path(__file__).resolve().parent.parent
-env_path = os.path.join(BASE_DIR, '.env')
 
-# 1. Aşama: Windows gizli karakterlerini aşmak için 'utf-8-sig' ile okumayı deniyoruz
-load_dotenv(env_path, override=True, encoding='utf-8-sig')
-GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
-
-# 2. Aşama: EĞER HALA BULAMADIYSA, KABA KUVVET İLE İÇİNDEN SÖKÜP ALIYORUZ!
-if not GEMINI_API_KEY and os.path.exists(env_path):
-    with open(env_path, 'r', encoding='utf-8-sig') as f:
-        for line in f:
-            if 'GEMINI_API_KEY' in line:
-                # Satırı eşittir'den böl, boşlukları ve tırnakları temizle
-                GEMINI_API_KEY = line.split('=', 1)[1].strip().strip('\'"')
-                os.environ["GEMINI_API_KEY"] = GEMINI_API_KEY
-
-if GEMINI_API_KEY:
-    # Google'ın kütüphanesi hata vermesin diye şifreyi onun istediği isme de kopyalıyoruz!
-    os.environ["GOOGLE_API_KEY"] = GEMINI_API_KEY
-
-print("\n" + "="*40)
-if GEMINI_API_KEY:
-    print(" Şifre alındı!")
-else:
-    print("Dosyanın içi  boş olabilir mi?")
-print("="*40 + "\n")
+# utf-8-sig strips the BOM that some Windows editors add to .env files.
+load_dotenv(BASE_DIR / '.env', encoding='utf-8-sig')
 
 
-SECRET_KEY = 'django-insecure-change-this-in-production-smartfinance'
+def env_bool(name, default=False):
+    value = os.environ.get(name)
+    if value is None:
+        return default
+    return value.strip().lower() in ('1', 'true', 'yes', 'on')
 
-DEBUG = True
 
-ALLOWED_HOSTS = [
-    'localhost', 
-    '127.0.0.1',
-    'smart-finance-app-6lgi.onrender.com'
-]
+def env_list(name, default=''):
+    value = os.environ.get(name, default)
+    return [item.strip() for item in value.split(',') if item.strip()]
+
+
+# --- Core security ---
+DEBUG = env_bool('DJANGO_DEBUG', default=False)
+
+SECRET_KEY = os.environ.get('DJANGO_SECRET_KEY')
+if not SECRET_KEY:
+    if DEBUG:
+        SECRET_KEY = 'django-insecure-local-development-only'
+    else:
+        raise ImproperlyConfigured('DJANGO_SECRET_KEY must be set when DJANGO_DEBUG is off.')
+
+ALLOWED_HOSTS = env_list(
+    'DJANGO_ALLOWED_HOSTS',
+    'localhost,127.0.0.1,smart-finance-app-6lgi.onrender.com',
+)
+
+# --- AI ---
+# GEMINI_API_KEY is the main name; GOOGLE_API_KEY is accepted for older .env files.
+GEMINI_API_KEY = (
+    os.environ.get('GEMINI_API_KEY') or os.environ.get('GOOGLE_API_KEY') or ''
+).strip().strip('\'"')
+
+# Largest receipt image accepted by /api/scan-receipt/ (bytes).
+MAX_RECEIPT_UPLOAD_BYTES = 5 * 1024 * 1024
 
 INSTALLED_APPS = [
     'django.contrib.admin',
@@ -52,14 +61,12 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    
-    # 3. Parti Uygulamalar
+
     'rest_framework',
     'rest_framework_simplejwt',
     'corsheaders',
     'djoser',
-    
-    # Bizim Uygulamamız
+
     'finance',
 ]
 
@@ -94,12 +101,15 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'config.wsgi.application'
 
+# Production must set DATABASE_URL (PostgreSQL). SQLite is for local development only:
+# on hosts like Render its file is wiped on every restart.
 DATABASES = {
     'default': dj_database_url.config(
-        default='sqlite:///db.sqlite3',
-        conn_max_age=600
+        default=f"sqlite:///{BASE_DIR / 'db.sqlite3'}",
+        conn_max_age=600,
     )
 }
+
 AUTH_PASSWORD_VALIDATORS = [
     {'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator'},
     {'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator'},
@@ -113,10 +123,10 @@ USE_I18N = True
 USE_TZ = True
 
 STATIC_URL = 'static/'
+STATIC_ROOT = BASE_DIR / 'staticfiles'
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-
-# --- REST Framework Ayarları ---
+# --- REST Framework ---
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [
         'rest_framework_simplejwt.authentication.JWTAuthentication',
@@ -124,20 +134,21 @@ REST_FRAMEWORK = {
     'DEFAULT_PERMISSION_CLASSES': [
         'rest_framework.permissions.IsAuthenticated',
     ],
+    # Limits for the endpoints that call Gemini (each call costs money).
+    'DEFAULT_THROTTLE_RATES': {
+        'ai_chat': os.environ.get('AI_CHAT_RATE', '30/hour'),
+        'receipt_scan': os.environ.get('RECEIPT_SCAN_RATE', '20/hour'),
+    },
 }
 
-# --- JWT Ayarları ---
-from datetime import timedelta
 SIMPLE_JWT = {
     'ACCESS_TOKEN_LIFETIME': timedelta(days=1),
     'REFRESH_TOKEN_LIFETIME': timedelta(days=7),
     'ROTATE_REFRESH_TOKENS': True,
 }
 
-# --- DİKKAT: DJOSER AYARLARI GÜNCELLENDİ! ---
 DJOSER = {
     'SERIALIZERS': {
-        # Artık Djoser'ın standart ayarlarını değil, bizim finance uygulamasındaki ayarları kullanacak!
         'user_create': 'finance.serializers.CustomUserCreateSerializer',
         'user': 'finance.serializers.CustomUserSerializer',
         'current_user': 'finance.serializers.CustomUserSerializer',
@@ -147,13 +158,16 @@ DJOSER = {
     },
 }
 
-# --- CORS Ayarları ---
-CORS_ALLOWED_ORIGINS = [
-    'http://localhost:3000',
-    'http://127.0.0.1:3000',
-    'https://smart-finance-app-kohl.vercel.app'
-]
-CORS_ALLOW_ALL_ORIGINS = True
-CORS_ALLOW_CREDENTIALS = True
+# --- CORS: only these front-end origins may call the API ---
+CORS_ALLOWED_ORIGINS = env_list(
+    'CORS_ALLOWED_ORIGINS',
+    'http://localhost:3000,http://127.0.0.1:3000,https://smart-finance-app-kohl.vercel.app',
+)
+CSRF_TRUSTED_ORIGINS = CORS_ALLOWED_ORIGINS
 
-ALLOWED_HOSTS = ['*']
+# --- Extra hardening when running in production ---
+if not DEBUG:
+    SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+    SESSION_COOKIE_SECURE = True
+    CSRF_COOKIE_SECURE = True
+    SECURE_CONTENT_TYPE_NOSNIFF = True
