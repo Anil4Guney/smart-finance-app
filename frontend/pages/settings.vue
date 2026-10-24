@@ -209,7 +209,7 @@ import { useAuth } from '~/composables/useAuth'
 definePageMeta({ layout: 'default' })
 
 const toast = useToast()
-const { currentCurrency, setCurrency, getRate } = useCurrency()
+const { currentCurrency, setCurrency, getRate, currencyOptions } = useCurrency()
 const { token } = useAuth()
 const { API_BASE, AUTH_BASE } = useApiBase()
 
@@ -268,12 +268,6 @@ const saveBudgets = async () => {
 
 // DÖVİZ İŞLEMLERİ
 const localCurrency = ref(currentCurrency.value)
-const currencyOptions = [
-  { label: '🇺🇸 US Dollar ($)', value: 'USD' },
-  { label: '🇪🇺 Euro (€)', value: 'EUR' },
-  { label: '🇹🇷 Turkish Lira (₺)', value: 'TRY' },
-  { label: '🇵🇱 Polish Złoty (zł)', value: 'PLN' }
-]
 const updateCurrency = () => { setCurrency(localCurrency.value) }
 watch(currentCurrency, (newVal) => { localCurrency.value = newVal })
 

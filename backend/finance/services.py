@@ -10,21 +10,22 @@ import google.generativeai as genai
 from PIL import Image
 
 
-RECEIPT_PROMPT = """Analyze this receipt image. Extract: Total Amount, Date (YYYY-MM-DD), Merchant Name (use as Title), and suggest a Category (Food, Transport, etc.). Return ONLY valid JSON.
+RECEIPT_PROMPT = """Analyze this receipt image. Extract: Total Amount, Currency, Date (YYYY-MM-DD), Merchant Name (use as Title), and suggest a Category (Food, Transport, etc.). Return ONLY valid JSON.
 
 Use these exact keys in the JSON:
 - "title": string - Merchant/store name
-- "amount": number - Total amount (e.g. 25.99)
+- "amount": number - Total amount in the receipt's own currency (e.g. 25.99)
+- "currency": string - ISO 4217 code of that currency (e.g. TRY, EUR, USD, GBP, PLN). Infer it from symbols (₺, TL, €, $, £, zł) or the country of the shop
 - "date": string - YYYY-MM-DD
 - "category": string - One of: Food, Rent, Salary, Freelance, Entertainment, Transport, Other
 
-If a value is not found, use empty string for title, 0 for amount, today for date, "Other" for category. No markdown, no code block—only the JSON object."""
+If a value is not found, use empty string for title, 0 for amount, empty string for currency, today for date, "Other" for category. No markdown, no code block—only the JSON object."""
 
 
 def analyze_receipt(image_file) -> dict:
     """
     Use Gemini to extract receipt data from an image.
-    Returns dict with keys: title, amount, date, category.
+    Returns dict with keys: title, amount, currency, date, category.
     """
     api_key = settings.GEMINI_API_KEY
     if not api_key:
@@ -61,6 +62,9 @@ def analyze_receipt(image_file) -> dict:
     amount = float(data.get("amount") or 0)
     date_str = str(data.get("date") or "").strip()
     category = str(data.get("category") or "Other").strip()
+    currency = str(data.get("currency") or "").strip().upper()
+    if not re.fullmatch(r"[A-Z]{3}", currency):
+        currency = ""
     if category not in (
         "Food",
         "Rent",
@@ -75,6 +79,7 @@ def analyze_receipt(image_file) -> dict:
     return {
         "title": title,
         "amount": round(amount, 2),
+        "currency": currency,
         "date": date_str,
         "category": category,
     }

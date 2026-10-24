@@ -119,7 +119,7 @@ definePageMeta({ layout: 'default' })
 const { token } = useAuth()
 const { API_BASE } = useApiBase()
 
-const { formatCurrency, currentCurrency, getRate } = useCurrency()
+const { formatCurrency, currentCurrency, toUSD, fromUSD } = useCurrency()
 
 const showAddDialog = ref(false)
 const isSaving = ref(false)
@@ -155,11 +155,9 @@ const openAddDialog = () => {
 
 const openEditDialog = (goal: any) => {
   editingGoalId.value = goal.id;
-  const rate = getRate();
-  
   newGoal.value = {
     title: goal.title,
-    displayTarget: Number(goal.target_amount) * rate
+    displayTarget: fromUSD(goal.target_amount)
   };
   showAddDialog.value = true;
 }
@@ -169,8 +167,7 @@ const saveGoal = async () => {
   isSaving.value = true;
   
   try {
-    const rate = getRate()
-    const targetInUSD = newGoal.value.displayTarget / rate
+    const targetInUSD = toUSD(newGoal.value.displayTarget)
 
     if (editingGoalId.value) {
       await $fetch(`${API_BASE}/savings-goals/${editingGoalId.value}/`, {
@@ -218,10 +215,9 @@ const addFunds = async () => {
   isAddingFunds.value = true;
   
   try {
-    const rate = getRate()
-    const amountToAddInUSD = displayAmountToAdd.value / rate
+    const amountToAddInUSD = toUSD(displayAmountToAdd.value)
 
-    const newTotalInUSD = Number(selectedGoal.value.current_amount) + amountToAddInUSD;
+    const newTotalInUSD = Math.round((Number(selectedGoal.value.current_amount) + amountToAddInUSD) * 100) / 100;
     
     await $fetch(`${API_BASE}/savings-goals/${selectedGoal.value.id}/`, {
       method: 'PATCH',

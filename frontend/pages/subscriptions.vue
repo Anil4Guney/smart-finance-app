@@ -114,7 +114,7 @@ import { useSubscriptions } from '~/composables/useSubscriptions'
 
 definePageMeta({ layout: 'default' })
 
-const { formatCurrency, currentCurrency } = useCurrency()
+const { formatCurrency, currentCurrency, toUSD, fromUSD } = useCurrency()
 const { subscriptions, addSubscription, updateSubscription, deleteSubscription, getDaysLeft, getRelativeDateString, notifications, loadSubscriptions } = useSubscriptions()
 
 onMounted(() => {
@@ -145,7 +145,7 @@ const openEditModal = (sub: any) => {
   editingId.value = sub.id
   formData.value = { 
     name: sub.name, 
-    amount: sub.amount, 
+    amount: fromUSD(sub.amount), 
     dueDate: new Date(sub.dueDate) 
   }
   showModal.value = true
@@ -155,10 +155,12 @@ const handleSave = async () => {
   if (!formData.value.name || !formData.value.amount || !formData.value.dueDate) return
 
   isSaving.value = true
+  // Amounts are stored in USD like everywhere else
+  const payload = { ...formData.value, amount: toUSD(formData.value.amount) }
 
   try {
     if (editingId.value) {
-      await updateSubscription(editingId.value, formData.value)
+      await updateSubscription(editingId.value, payload)
     } else {
       let icon = 'pi-credit-card'
       let colorClass = 'bg-purple-100 text-purple-600 dark:bg-purple-900/30 dark:text-purple-400'
@@ -166,7 +168,7 @@ const handleSave = async () => {
       if (formData.value.name.toLowerCase().includes('internet') || formData.value.name.toLowerCase().includes('wifi')) { icon = 'pi-wifi'; colorClass = 'bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400' }
 
       await addSubscription({
-        ...formData.value,
+        ...payload,
         icon: icon,
         colorClass: colorClass
       })

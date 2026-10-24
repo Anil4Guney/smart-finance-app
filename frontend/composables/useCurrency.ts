@@ -6,6 +6,15 @@ const currentCurrency = ref('USD')
 const rates = ref<Record<string, number>>({})
 const isReady = ref(false)
 
+// Uygulamada seçilebilen para birimleri
+const CURRENCY_OPTIONS = [
+  { label: '🇹🇷 Turkish Lira (₺)', short: '₺ TRY', value: 'TRY' },
+  { label: '🇺🇸 US Dollar ($)', short: '$ USD', value: 'USD' },
+  { label: '🇪🇺 Euro (€)', short: '€ EUR', value: 'EUR' },
+  { label: '🇬🇧 British Pound (£)', short: '£ GBP', value: 'GBP' },
+  { label: '🇵🇱 Polish Złoty (zł)', short: 'zł PLN', value: 'PLN' },
+]
+
 export const useCurrency = () => {
   // Gerçek Zamanlı Kur API'sinden verileri çeken fonksiyon
   const fetchRates = async () => {
@@ -21,7 +30,7 @@ export const useCurrency = () => {
     } catch (error) {
       console.error('❌ Kur çekme hatası:', error)
       // İnternet koparsa veya API çökerse diye "Güvenlik Ağı" (Fallback) kurları
-      rates.value = { USD: 1, EUR: 0.92, TRY: 32.50, PLN: 3.98 }
+      rates.value = { USD: 1, EUR: 0.92, TRY: 32.50, GBP: 0.79, PLN: 3.98 }
       isReady.value = true
     }
   }
@@ -53,6 +62,7 @@ export const useCurrency = () => {
       USD: 'en-US',
       EUR: 'de-DE',
       TRY: 'tr-TR',
+      GBP: 'en-GB',
       PLN: 'pl-PL'
     }
 
@@ -63,18 +73,31 @@ export const useCurrency = () => {
   }
 
 
-// (frontend/composables/useCurrency.ts içine, return bloğunun üstüne eklenecek)
-
   // O an seçili olan dövizin USD karşılığını (çarpanını) döndürür
   const getRate = () => {
     return rates.value[currentCurrency.value] || 1
   }
 
+  // Herhangi bir dövizin USD çarpanı (1 USD = ? birim)
+  const getRateFor = (code: string) => rates.value[code] || 1
+
+  // Tutarlar veritabanında USD olarak, 2 basamakla saklanır (backend fazlasını reddeder)
+  const toUSD = (amount: number, code: string = currentCurrency.value) =>
+    Math.round((amount / getRateFor(code)) * 100) / 100
+
+  // USD tutarı seçilen dövize çevirir (form alanlarını doldurmak için)
+  const fromUSD = (amount: number | string, code: string = currentCurrency.value) =>
+    Math.round(Number(amount) * getRateFor(code) * 100) / 100
+
   return {
     currentCurrency,
+    currencyOptions: CURRENCY_OPTIONS,
     setCurrency,
     formatCurrency,
-    getRate, // BİLEŞENLERE İHRAÇ ETTİK (BUNU EKLEMEYİ UNUTMA)
+    getRate,
+    getRateFor,
+    toUSD,
+    fromUSD,
     isReady
   }
 }

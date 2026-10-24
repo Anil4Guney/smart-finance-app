@@ -124,18 +124,35 @@
         
         <div>
           <label for="amount" class="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">
-            Amount (in {{ currentCurrency }})
+            Amount
           </label>
-          <InputNumber
-            id="amount"
-            v-model="form.displayAmount"
-            class="w-full"
-            mode="currency"
-            :currency="currentCurrency"
-            :min="0"
-            :maxFractionDigits="2"
-            required
-          />
+          <div class="flex gap-2">
+            <Dropdown
+              v-model="form.currency"
+              :options="currencyOptions"
+              optionLabel="short"
+              optionValue="value"
+              aria-label="Currency"
+              class="w-32 shrink-0"
+            />
+            <InputNumber
+              :key="form.currency"
+              id="amount"
+              v-model="form.displayAmount"
+              class="w-full"
+              mode="currency"
+              :currency="form.currency"
+              :min="0"
+              :maxFractionDigits="2"
+              required
+            />
+          </div>
+          <p
+            v-if="form.displayAmount && form.currency !== currentCurrency"
+            class="text-xs text-gray-500 dark:text-gray-400 mt-1"
+          >
+            ≈ {{ formatCurrency(toUSD(form.displayAmount, form.currency)) }} at today's rate
+          </p>
         </div>
 
         <div>
@@ -255,7 +272,7 @@ definePageMeta({ layout: 'default' })
 
 const { token } = useAuth()
 const confirm = useConfirm()
-const { formatCurrency, currentCurrency, getRate } = useCurrency()
+const { formatCurrency, currentCurrency, currencyOptions, toUSD, fromUSD } = useCurrency()
 
 const showDialog = ref(false)
 const showScanDialog = ref(false)
@@ -267,6 +284,7 @@ const editingId = ref<number | null>(null)
 const form = ref({
   title: '',
   displayAmount: null as number | null,
+  currency: currentCurrency.value,
   transaction_type: 'INCOME' as 'INCOME' | 'EXPENSE',
   category: '',
   customCategoryName: '',
@@ -298,6 +316,7 @@ const resetForm = () => {
   form.value = {
     title: '',
     displayAmount: null,
+    currency: currentCurrency.value,
     transaction_type: 'INCOME',
     category: '',
     customCategoryName: '',
@@ -315,12 +334,12 @@ const openAddModal = () => {
 const openEditModal = (tx: any) => {
   editingId.value = tx.id
   
-  const rate = getRate()
   const isDefaultCategory = categoryOptions.includes(tx.category)
   
   form.value = {
     title: tx.title,
-    displayAmount: Number(tx.amount) * rate,
+    displayAmount: fromUSD(tx.amount),
+    currency: currentCurrency.value,
     transaction_type: tx.transaction_type,
     category: isDefaultCategory ? tx.category : 'Other',
     customCategoryName: isDefaultCategory ? '' : tx.category,
@@ -369,7 +388,7 @@ async function onReceiptUpload(event: { files: File[] }) {
     const formData = new FormData()
     formData.append('image', file)
 
-    const result = await $fetch<{ title: string; amount: number; date: string; category: string }>(
+    const result = await $fetch<{ title: string; amount: number; currency?: string; date: string; category: string }>(
       `${API_BASE}/scan-receipt/`,
       {
         method: 'POST',
@@ -379,9 +398,12 @@ async function onReceiptUpload(event: { files: File[] }) {
     )
 
     form.value.title = result.title || form.value.title
-    if (result.amount != null) {
-      const rate = getRate()
-      form.value.displayAmount = result.amount * rate
+    // The receipt amount is in the receipt's own currency, not USD
+    if (result.currency && currencyOptions.some(c => c.value === result.currency)) {
+      form.value.currency = result.currency
+    }
+    if (result.amount) {
+      form.value.displayAmount = result.amount
     }
 
     form.value.category = result.category || form.value.category
@@ -413,8 +435,7 @@ const handleSubmit = async () => {
   submitError.value = ''
 
   try {
-    const rate = getRate()
-    const amountInUSD = form.value.displayAmount / rate
+    const amountInUSD = toUSD(form.value.displayAmount, form.value.currency)
 
     const payload = {
       title: form.value.title,
