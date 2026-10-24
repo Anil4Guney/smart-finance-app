@@ -201,10 +201,11 @@ class AIChatView(APIView):
         - Yaklaşan Abonelikleri: {sub_details if sub_details else 'Abonelik yok'}
 
         Kullanıcı sana aşağıdaki soruyu sordu. 
-        If her question is about her own expenses, budgets or subscriptions, answer clearly and correctly using the data above. 
+        Soru kendi harcamaları, bütçeleri veya abonelikleriyle ilgiliyse yukarıdaki verileri kullanarak net ve doğru cevap ver.
         Eğer genel bir finans/yatırım sorusuysa, güncel bilgilere dayanarak profesyonel bir tavsiye ver. 
         Konuşma dilin doğal, okuması kolay olsun ve uygun yerlerde emoji kullan.
-        ASLA JSON formatı döndürme, sadece normal sohbet metni (Markdown destekli) döndür.
+        ASLA JSON formatı döndürme. Markdown kullanma (yıldız, diyez yok); düz metin ve gerekirse "- " ile başlayan maddeler yaz.
+        Kullanıcı hangi dilde sorduysa o dilde cevap ver.
 
         Kullanıcının Sorusu: "{user_message}"
         """
@@ -215,7 +216,7 @@ class AIChatView(APIView):
                 return Response({"error": "AI service is not configured."}, status=503)
 
             genai.configure(api_key=api_key)
-            model = genai.GenerativeModel('gemini-2.0-flash') # En güncel model
+            model = genai.GenerativeModel(settings.GEMINI_MODEL)
             
             # Gemini'a promptu gönderiyoruz
             response = model.generate_content(system_prompt)

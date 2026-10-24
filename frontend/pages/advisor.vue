@@ -7,7 +7,7 @@
       </div>
       <div>
         <h1 class="text-3xl font-bold text-gray-900 dark:text-white transition-colors duration-300">AI Financial Advisor</h1>
-        <p class="text-sm text-gray-600 dark:text-gray-400 mt-1 transition-colors duration-300">Your personal AI assistant for budgets, insights, and web data.</p>
+        <p class="text-sm text-gray-600 dark:text-gray-400 mt-1 transition-colors duration-300">Your personal AI assistant for budgets and insights.</p>
       </div>
     </div>
 
@@ -95,7 +95,7 @@ const firstName = user.value?.first_name || user.value?.username || 'there'
 const messages = ref([
   { 
     role: 'ai', 
-    content: `Hi ${firstName}! 👋 I'm your SmartFinance AI Assistant.\n\nI can analyze your monthly budget, check your recent transactions, or search the web for the latest financial trends. What would you like to know today?` 
+    content: `Hi ${firstName}! 👋 I'm your SmartFinance AI Assistant.\n\nI can look at your budgets, transactions and subscriptions, or answer general money questions. What would you like to know today?` 
   }
 ])
 
@@ -111,7 +111,7 @@ const scrollToBottom = async () => {
   }
 }
 
-// Mesaj Gönderme Fonksiyonu (Frontend Simülasyonu)
+// Mesaj Gönderme Fonksiyonu
 const sendMessage = async () => {
   if (!userInput.value.trim() || isTyping.value) return
 
@@ -125,30 +125,23 @@ const sendMessage = async () => {
   isTyping.value = true
   scrollToBottom()
 
-  /* --- DJANGO / GEMINI API BAĞLANTISI BURAYA GELECEK ---
-    const response = await $fetch(`${API_BASE}/chat/`, {
+  // 3. Soruyu backend'e gönder (Gemini + kullanıcının kendi verileri)
+  try {
+    const response = await $fetch<{ reply: string }>(`${API_BASE}/chat/`, {
       method: 'POST',
       headers: { Authorization: `Bearer ${token.value}` },
-      body: { prompt: query }
+      body: { prompt: query },
     })
     messages.value.push({ role: 'ai', content: response.reply })
-  */
-
-  // 3. Geçici Simülasyon (Gerçek API bağlanana kadar)
-  setTimeout(() => {
-    let aiReply = "I'm still learning how to fetch your live data, but once connected to the backend, I'll analyze this right away!"
-
-    const q = query.toLowerCase()
-    if (q.includes('spend') || q.includes('budget') || q.includes('food')) {
-      aiReply = "Looking at your current month's data, you've spent $800 on Food, which is nearing your $1,000 limit. I'd suggest eating at home for the next few days to stay on track! 🍕➡️🥗"
-    } else if (q.includes('pln') || q.includes('zloty') || q.includes('poland')) {
-      aiReply = "I just checked the web for you! 🌐 The Polish Złoty (PLN) is currently trading relatively stable against the Euro. Since you are studying in Poland, keeping a portion of your budget in PLN avoids constant conversion fees."
-    }
-
+  } catch (error: any) {
+    const status = error?.response?.status
+    let reply = error?.data?.error || 'The AI assistant is unavailable right now. Please try again later.'
+    if (status === 429) reply = "You've reached the hourly question limit. Please try again a bit later. ⏳"
+    messages.value.push({ role: 'ai', content: reply })
+  } finally {
     isTyping.value = false
-    messages.value.push({ role: 'ai', content: aiReply })
     scrollToBottom()
-  }, 1500) // 1.5 saniyelik sahte düşünme süresi
+  }
 }
 
 onMounted(() => {

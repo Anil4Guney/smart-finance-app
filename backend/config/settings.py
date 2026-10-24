@@ -51,6 +51,10 @@ GEMINI_API_KEY = (
     os.environ.get('GEMINI_API_KEY') or os.environ.get('GOOGLE_API_KEY') or ''
 ).strip().strip('\'"')
 
+# Gemini model for chat and receipts. 'gemini-flash-latest' always points at Google's
+# current Flash model, so the app keeps working when old versions are retired.
+GEMINI_MODEL = os.environ.get('GEMINI_MODEL', 'gemini-flash-latest')
+
 # Largest receipt image accepted by /api/scan-receipt/ (bytes).
 MAX_RECEIPT_UPLOAD_BYTES = 5 * 1024 * 1024
 
@@ -103,9 +107,10 @@ WSGI_APPLICATION = 'config.wsgi.application'
 
 # Production must set DATABASE_URL (PostgreSQL). SQLite is for local development only:
 # on hosts like Render its file is wiped on every restart.
+# An empty DATABASE_URL= line in .env also falls back to SQLite.
 DATABASES = {
-    'default': dj_database_url.config(
-        default=f"sqlite:///{BASE_DIR / 'db.sqlite3'}",
+    'default': dj_database_url.parse(
+        os.environ.get('DATABASE_URL', '').strip() or f"sqlite:///{BASE_DIR / 'db.sqlite3'}",
         conn_max_age=600,
     )
 }

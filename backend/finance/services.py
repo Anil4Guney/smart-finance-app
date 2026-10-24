@@ -23,7 +23,7 @@ If a value is not found, use empty string for title, 0 for amount, today for dat
 
 def analyze_receipt(image_file) -> dict:
     """
-    Use Gemini 1.5 Flash to extract receipt data from an image.
+    Use Gemini to extract receipt data from an image.
     Returns dict with keys: title, amount, date, category.
     """
     api_key = settings.GEMINI_API_KEY
@@ -31,7 +31,7 @@ def analyze_receipt(image_file) -> dict:
         raise ValueError("AI service is not configured (GEMINI_API_KEY is missing).")
 
     genai.configure(api_key=api_key)
-    model = genai.GenerativeModel("gemini-2.5-flash")
+    model = genai.GenerativeModel(settings.GEMINI_MODEL)
 
     # Support Django UploadedFile or file-like object
     if hasattr(image_file, "read"):
