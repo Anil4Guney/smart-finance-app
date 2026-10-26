@@ -18,7 +18,7 @@
         <div class="flex flex-col gap-5">
           <div>
             <label class="block font-bold text-gray-700 dark:text-gray-300 mb-3">Gösterilen Para Birimi</label>
-            <Dropdown 
+            <Select 
               v-model="localCurrency" 
               :options="currencyOptions" 
               optionLabel="label" 
@@ -28,7 +28,7 @@
             />
           </div>
           <p class="text-sm text-gray-500 dark:text-gray-400 italic mt-2 bg-gray-50 dark:bg-gray-700/50 p-4 rounded-xl border border-gray-100 dark:border-gray-600">
-            <i class="pi pi-sync mr-2 text-blue-500"></i> Kurlar canlı alınır. Panelin anında güncellenir.
+            <i class="pi pi-sync mr-2 text-blue-500"></i> Kurlar canlı alınır, panelin anında güncellenir. Kurlar: <a href="https://www.exchangerate-api.com" target="_blank" rel="noopener noreferrer" class="underline">ExchangeRate-API</a>
           </p>
         </div>
       </div>
@@ -129,9 +129,24 @@
             icon="pi pi-file-excel" 
             severity="success" 
             :loading="isExporting"
-            @click="exportCSV" 
+            @click="exportCSV"
             class="w-full sm:w-auto"
           />
+
+          <div class="pt-5 border-t border-gray-100 dark:border-gray-700 flex flex-col gap-3">
+            <p class="text-gray-600 dark:text-gray-400 text-sm">
+              Hesabını ve tüm kayıtlarını kalıcı olarak silebilirsin. Bu işlem geri alınamaz.
+              <NuxtLink to="/privacy" class="underline text-emerald-600 dark:text-emerald-400">Gizlilik Politikası</NuxtLink>
+            </p>
+            <Button
+              label="Hesabımı Sil"
+              icon="pi pi-trash"
+              severity="danger"
+              outlined
+              class="w-full sm:w-auto"
+              @click="openDeleteDialog"
+            />
+          </div>
         </div>
       </div>
 
@@ -173,6 +188,26 @@
 
     </div>
 
+    <Dialog v-model:visible="showDeleteDialog" modal header="Hesabımı Sil" :style="{ width: '90vw', maxWidth: '450px' }">
+      <form @submit.prevent="deleteAccount" class="flex flex-col gap-5 pt-4">
+        <div class="bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-300 p-3 rounded-lg text-sm border border-red-100 dark:border-red-800/50">
+          <i class="pi pi-exclamation-triangle mr-1"></i>
+          Tüm işlemlerin, bütçelerin, hedeflerin ve tekrarlayan ödemelerin <b>kalıcı olarak silinir</b>. Geri alınamaz.
+        </div>
+        <div class="flex flex-col gap-2 password-wrapper">
+          <label for="deletePassword" class="font-bold text-gray-700 dark:text-gray-300">Onaylamak için şifreni yaz</label>
+          <Password id="deletePassword" v-model="deletePassword" :feedback="false" toggleMask required placeholder="Şifren" inputClass="w-full" />
+        </div>
+        <div v-if="deleteError" class="bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 p-3 rounded-lg text-sm font-medium border border-red-100 dark:border-red-800/50">
+          <i class="pi pi-exclamation-circle mr-1"></i> {{ deleteError }}
+        </div>
+        <div class="flex justify-end gap-3 mt-2">
+          <Button type="button" label="Vazgeç" severity="secondary" text @click="showDeleteDialog = false" />
+          <Button type="submit" label="Hesabı Kalıcı Olarak Sil" icon="pi pi-trash" severity="danger" :loading="isDeleting" />
+        </div>
+      </form>
+    </Dialog>
+
     <Dialog v-model:visible="showPasswordDialog" modal header="🔒 Şifreyi Değiştir" :style="{ width: '90vw', maxWidth: '450px' }">
       <form @submit.prevent="updatePassword" class="flex flex-col gap-5 pt-4">
         <div class="flex flex-col gap-2 password-wrapper">
@@ -210,7 +245,7 @@ definePageMeta({ layout: 'default' })
 
 const toast = useToast()
 const { currentCurrency, setCurrency, getRate, currencyOptions } = useCurrency()
-const { token } = useAuth()
+const { token, logout } = useAuth()
 const { API_BASE, AUTH_BASE } = useApiBase()
 
 // --- BÜTÇE İŞLEMLERİ ---
@@ -341,6 +376,35 @@ const handle2FAToggle = () => {
 const showPasswordDialog = ref(false)
 const isUpdatingPassword = ref(false)
 const passwordError = ref('')
+// --- Hesabı silme ---
+const showDeleteDialog = ref(false)
+const deletePassword = ref('')
+const deleteError = ref('')
+const isDeleting = ref(false)
+
+const openDeleteDialog = () => {
+  deletePassword.value = ''
+  deleteError.value = ''
+  showDeleteDialog.value = true
+}
+
+const deleteAccount = async () => {
+  deleteError.value = ''
+  isDeleting.value = true
+  try {
+    await $fetch(`${AUTH_BASE}/users/me/`, {
+      method: 'DELETE',
+      headers: { Authorization: `Bearer ${token.value}` },
+      body: { current_password: deletePassword.value },
+    })
+    logout() // clears the session and the offline copy, then goes to the login page
+  } catch (error: any) {
+    const data = error?.data || {}
+    deleteError.value = translateApiError(data.current_password?.[0] || data.detail, 'Hesap silinemedi. Lütfen tekrar dene.')
+    isDeleting.value = false
+  }
+}
+
 const passwordForm = ref({ currentPassword: '', newPassword: '', confirmPassword: '' })
 
 const openPasswordDialog = () => {
@@ -374,12 +438,13 @@ const updatePassword = async () => {
   } catch (error: any) {
     // Django returns field errors, e.g. { current_password: ["Invalid password."] }
     const data = error?.data || {}
-    passwordError.value =
+    passwordError.value = translateApiError(
       data.current_password?.[0] ||
       data.new_password?.[0] ||
       data.non_field_errors?.[0] ||
-      data.detail ||
+      data.detail,
       'Şifre değiştirilemedi. Lütfen tekrar dene.'
+    )
   } finally {
     isUpdatingPassword.value = false
   }

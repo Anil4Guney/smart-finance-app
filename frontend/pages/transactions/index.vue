@@ -161,7 +161,7 @@
             Tutar
           </label>
           <div class="flex gap-2">
-            <Dropdown
+            <Select
               v-model="form.currency"
               :options="currencyOptions"
               optionLabel="short"
@@ -203,7 +203,7 @@
         
         <div>
           <label for="category" class="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">Kategori</label>
-          <Dropdown
+          <Select
             id="category"
             v-model="form.category"
             :options="categoryItems"
@@ -224,7 +224,7 @@
         
         <div>
           <label for="date" class="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">Tarih</label>
-          <Calendar id="date" v-model="form.date" class="w-full" dateFormat="dd.mm.yy" required />
+          <DatePicker id="date" v-model="form.date" class="w-full" dateFormat="dd.mm.yy" required />
         </div>
         
         <div>
@@ -297,8 +297,8 @@ import Dialog from 'primevue/dialog'
 import InputText from 'primevue/inputtext'
 import InputNumber from 'primevue/inputnumber'
 import SelectButton from 'primevue/selectbutton'
-import Dropdown from 'primevue/dropdown'
-import Calendar from 'primevue/calendar'
+import Select from 'primevue/select'
+import DatePicker from 'primevue/datepicker'
 import Textarea from 'primevue/textarea'
 import Tag from 'primevue/tag'
 import { useConfirm } from 'primevue/useconfirm'

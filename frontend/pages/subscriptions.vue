@@ -158,7 +158,7 @@
             {{ form.kind === 'INSTALLMENT' && form.amountMode === 'TOTAL' ? 'Toplam fiyat' : 'Aylık tutar' }}
           </label>
           <div class="flex gap-2">
-            <Dropdown v-model="form.currency" :options="currencyOptions" optionLabel="short" optionValue="value" aria-label="Para birimi" class="w-32 shrink-0" />
+            <Select v-model="form.currency" :options="currencyOptions" optionLabel="short" optionValue="value" aria-label="Para birimi" class="w-32 shrink-0" />
             <InputNumber :key="form.currency" inputId="rec-amount" v-model="form.amount" mode="currency" :currency="form.currency" :min="0" :maxFractionDigits="2" required class="w-full" />
           </div>
           <p v-if="form.kind === 'INSTALLMENT' && form.amountMode === 'TOTAL' && monthlyPayment" class="text-xs text-gray-500 dark:text-gray-400">
@@ -168,7 +168,7 @@
 
         <div class="flex flex-col gap-2">
           <label for="rec-date" class="font-bold text-gray-700 dark:text-gray-300">{{ dateLabel }}</label>
-          <Calendar inputId="rec-date" v-model="form.dueDate" showIcon dateFormat="dd.mm.yy" class="w-full" required />
+          <DatePicker inputId="rec-date" v-model="form.dueDate" showIcon dateFormat="dd.mm.yy" class="w-full" required />
           <p v-if="form.kind === 'INSTALLMENT' && !editingId" class="text-xs text-gray-500 dark:text-gray-400">
             Bugünden önceki taksitler ödenmiş sayılır.
           </p>
@@ -176,7 +176,7 @@
 
         <div class="flex flex-col gap-2">
           <label for="rec-category" class="font-bold text-gray-700 dark:text-gray-300">Kategori <span class="font-normal text-gray-400">(isteğe bağlı)</span></label>
-          <Dropdown
+          <Select
             inputId="rec-category"
             v-model="form.category"
             :options="categoryItems"
@@ -215,8 +215,8 @@ import Button from 'primevue/button'
 import Dialog from 'primevue/dialog'
 import InputText from 'primevue/inputtext'
 import InputNumber from 'primevue/inputnumber'
-import Calendar from 'primevue/calendar'
-import Dropdown from 'primevue/dropdown'
+import DatePicker from 'primevue/datepicker'
+import Select from 'primevue/select'
 import SelectButton from 'primevue/selectbutton'
 import ToggleSwitch from 'primevue/toggleswitch'
 import ProgressBar from 'primevue/progressbar'

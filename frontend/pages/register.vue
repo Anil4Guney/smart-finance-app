@@ -102,6 +102,10 @@
             :loading="loading"
           />
           
+          <p class="mt-4 text-xs text-center text-gray-500 dark:text-gray-400">
+            Kayıt olarak <NuxtLink to="/privacy" class="auth-link !ml-0">Gizlilik Politikası</NuxtLink>'nı okuduğunu kabul edersin.
+          </p>
+
           <p class="auth-footer">
             Zaten hesabın var mı?
             <NuxtLink to="/login" class="auth-link">Giriş yap</NuxtLink>

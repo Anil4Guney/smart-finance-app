@@ -88,6 +88,34 @@ const trLocale = {
 const themeScript =
   "(function(){try{if(localStorage.getItem('theme')!=='light'){document.documentElement.classList.add('dark')}}catch(e){document.documentElement.classList.add('dark')}})()"
 
+// Backend address (same rule as runtimeConfig below); the CSP must allow calling it
+const apiBase = process.env.NUXT_PUBLIC_API_BASE || (process.env.NODE_ENV === 'production'
+  ? 'https://smart-finance-app-6lgi.onrender.com'
+  : 'http://localhost:8000')
+
+// Security headers for every page. The CSP keeps inline scripts/styles allowed (Nuxt and PrimeVue need
+// them) but blocks foreign scripts, framing, plugins and unexpected request targets.
+const securityHeaders = {
+  'X-Content-Type-Options': 'nosniff',
+  'X-Frame-Options': 'DENY',
+  'Referrer-Policy': 'strict-origin-when-cross-origin',
+  'Permissions-Policy': 'camera=(self), microphone=(), geolocation=(), payment=(), usb=()',
+  'Content-Security-Policy': [
+    "default-src 'self'",
+    "script-src 'self' 'unsafe-inline'",
+    "style-src 'self' 'unsafe-inline'",
+    "img-src 'self' data: blob:",
+    "font-src 'self' data:",
+    `connect-src 'self' ${apiBase} https://open.er-api.com`,
+    "manifest-src 'self'",
+    "worker-src 'self'",
+    "object-src 'none'",
+    "base-uri 'self'",
+    "form-action 'self'",
+    "frame-ancestors 'none'",
+  ].join('; '),
+}
+
 export default defineNuxtConfig({
   compatibilityDate: '2024-11-01',
   devtools: { enabled: false }, // DevTools has an unauthenticated RPC (command execution) while the dev server runs
@@ -96,6 +124,8 @@ export default defineNuxtConfig({
   // The app lives behind a login and talks to a separate API, so it runs fully in the browser.
   // That also lets the installed app open offline from its cached shell.
   ssr: false,
+  routeRules: { '/**': { headers: securityHeaders } },
+
   // Emit the app shell (index.html) so the service worker can open the app offline
   nitro: { prerender: { routes: ['/'] } },
 
@@ -103,6 +133,9 @@ export default defineNuxtConfig({
   // Defaults: local Django in development, the Render backend in production builds.
   runtimeConfig: {
     public: {
+      // Shown on the privacy page (optional): NUXT_PUBLIC_CONTACT_EMAIL / NUXT_PUBLIC_OPERATOR_NAME
+      contactEmail: '',
+      operatorName: '',
       apiBase: process.env.NODE_ENV === 'production'
         ? 'https://smart-finance-app-6lgi.onrender.com'
         : 'http://localhost:8000',

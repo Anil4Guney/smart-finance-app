@@ -39,3 +39,20 @@ export const formatDayMonthTR = (value: string | Date): string => {
 
 export const formatMonthYearTR = (year: number, monthIndex: number): string =>
   new Date(year, monthIndex, 1).toLocaleDateString(LOCALE, { month: 'long', year: 'numeric' })
+
+// A few server messages come from libraries that only speak English
+const API_ERRORS: Record<string, string> = {
+  'Invalid password.': 'Şifre hatalı.',
+  'Invalid token.': 'Oturum geçersiz. Lütfen tekrar giriş yap.',
+  'Authentication credentials were not provided.': 'Oturum süresi doldu. Lütfen tekrar giriş yap.',
+  'Request was throttled.': 'Çok fazla istek yapıldı. Biraz bekleyip tekrar dene.',
+}
+
+export const translateApiError = (message: unknown, fallback = 'Bir hata oluştu. Lütfen tekrar dene.'): string => {
+  const text = String(message ?? '').trim()
+  if (!text) return fallback
+  const known = Object.keys(API_ERRORS).find(key => text.startsWith(key))
+  if (known) return API_ERRORS[known]
+  if (/^Expected available in \d+ second/i.test(text)) return 'Çok fazla istek yapıldı. Biraz bekleyip tekrar dene.'
+  return text
+}

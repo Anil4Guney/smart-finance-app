@@ -1,24 +1,13 @@
 <template>
   <div class="min-h-screen bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white transition-colors duration-300 flex">
 
-    <div
-      v-if="isMobileMenuOpen"
-      @click="isMobileMenuOpen = false"
-      class="fixed inset-0 bg-gray-950/60 z-40 lg:hidden backdrop-blur-sm transition-opacity"
-    ></div>
-
-    <aside
-      :class="isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'"
-      class="fixed left-0 top-0 h-screen w-64 bg-white dark:bg-gray-950 border-r border-gray-200 dark:border-gray-800 z-50 flex flex-col transition-transform duration-300 ease-in-out lg:translate-x-0"
-    >
+    <!-- Desktop sidebar. On phones/tablets the bottom navigation replaces it -->
+    <aside class="hidden lg:flex fixed left-0 top-0 h-screen w-64 bg-white dark:bg-gray-950 border-r border-gray-200 dark:border-gray-800 z-50 flex-col">
       <div class="h-16 flex items-center justify-between px-6 border-b border-gray-200 dark:border-gray-800 shrink-0">
         <span class="flex items-center gap-2.5 text-xl font-extrabold tracking-tight text-gray-900 dark:text-white">
           <img src="/icon.svg" alt="" class="w-8 h-8 rounded-xl shadow-lg shadow-emerald-900/30" />
           SmartFinance
         </span>
-        <button @click="isMobileMenuOpen = false" aria-label="Menüyü kapat" class="lg:hidden text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white">
-          <i class="pi pi-times text-xl"></i>
-        </button>
       </div>
 
       <nav class="flex-1 p-4 space-y-1.5 overflow-y-auto">
@@ -26,7 +15,6 @@
           v-for="item in navItems"
           :key="item.to"
           :to="item.to"
-          @click="isMobileMenuOpen = false"
           class="flex items-center gap-3 px-4 py-3 rounded-xl text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors font-medium"
           active-class="!bg-emerald-50 !text-emerald-700 dark:!bg-emerald-500/10 dark:!text-emerald-400"
         >
@@ -34,18 +22,21 @@
         </NuxtLink>
       </nav>
 
-      <p class="px-6 py-4 text-xs text-gray-400 dark:text-gray-500 border-t border-gray-200 dark:border-gray-800">
-        Verilerin yalnızca sana aittir.
-      </p>
+      <div class="px-6 py-4 text-xs text-gray-400 dark:text-gray-500 border-t border-gray-200 dark:border-gray-800">
+        <p>Verilerin yalnızca sana aittir.</p>
+        <NuxtLink to="/privacy" class="inline-block mt-1 hover:text-emerald-500 underline underline-offset-2">Gizlilik Politikası</NuxtLink>
+      </div>
     </aside>
 
-    <header class="fixed top-0 left-0 lg:left-64 right-0 h-16 bg-white/90 dark:bg-gray-950/90 backdrop-blur border-b border-gray-200 dark:border-gray-800 flex items-center justify-between px-4 lg:px-8 z-30">
+    <header class="fixed top-0 left-0 lg:left-64 right-0 h-16 border-b border-gray-200 dark:border-gray-800 flex items-center justify-between px-4 lg:px-8 z-30">
+      <!-- Blur lives on its own layer: backdrop-filter on the header itself would trap the fixed dropdown overlays inside it -->
+      <div class="absolute inset-0 -z-10 bg-white/90 dark:bg-gray-950/90 backdrop-blur" aria-hidden="true"></div>
 
       <div class="flex items-center gap-3">
-        <button @click="isMobileMenuOpen = true" aria-label="Menüyü aç" class="lg:hidden p-2 -ml-2 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors">
-          <i class="pi pi-bars text-xl"></i>
-        </button>
-        <span class="text-lg font-bold text-gray-900 dark:text-white tracking-tight lg:hidden">SmartFinance</span>
+        <NuxtLink to="/" class="flex items-center gap-2.5 lg:hidden" aria-label="SmartFinance ana sayfa">
+          <img src="/icon.svg" alt="" class="w-8 h-8 rounded-lg" />
+          <span class="text-lg font-bold text-gray-900 dark:text-white tracking-tight">SmartFinance</span>
+        </NuxtLink>
       </div>
 
       <div class="flex items-center gap-2 sm:gap-3">
@@ -62,7 +53,7 @@
 
           <div v-if="isNotifOpen" @click="isNotifOpen = false" class="fixed inset-0 z-40"></div>
 
-          <div v-if="isNotifOpen" class="absolute right-0 mt-3 w-[min(20rem,calc(100vw-2rem))] bg-white dark:bg-gray-800 rounded-2xl shadow-xl border border-gray-100 dark:border-gray-700 z-50 overflow-hidden origin-top-right">
+          <div v-if="isNotifOpen" class="fixed left-3 right-3 top-[4.5rem] sm:absolute sm:left-auto sm:right-0 sm:top-auto sm:mt-3 sm:w-80 bg-white dark:bg-gray-800 rounded-2xl shadow-xl border border-gray-100 dark:border-gray-700 z-50 overflow-hidden sm:origin-top-right">
             <div class="p-4 border-b border-gray-100 dark:border-gray-700 flex justify-between items-center bg-gray-50 dark:bg-gray-900/50">
               <div class="flex items-center gap-2">
                 <h3 class="font-bold text-gray-900 dark:text-white text-sm sm:text-base">Bildirimler</h3>
@@ -123,11 +114,17 @@
               <p class="text-xs text-gray-500 dark:text-gray-400 truncate mt-0.5">{{ user?.email || 'E-posta eklenmemiş' }}</p>
             </div>
             <div class="p-2">
+              <NuxtLink to="/savings" @click="isProfileOpen = false" class="lg:hidden flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50 rounded-xl transition-colors">
+                <i class="pi pi-chart-line text-emerald-500"></i> Birikim Hedefleri
+              </NuxtLink>
               <NuxtLink to="/profile" @click="isProfileOpen = false" class="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50 rounded-xl transition-colors">
                 <i class="pi pi-user text-emerald-500"></i> Profilim
               </NuxtLink>
               <NuxtLink to="/settings" @click="isProfileOpen = false" class="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50 rounded-xl transition-colors">
                 <i class="pi pi-cog text-gray-400"></i> Ayarlar
+              </NuxtLink>
+              <NuxtLink to="/privacy" @click="isProfileOpen = false" class="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50 rounded-xl transition-colors">
+                <i class="pi pi-lock text-gray-400"></i> Gizlilik Politikası
               </NuxtLink>
               <div class="h-px bg-gray-100 dark:bg-gray-700 my-1"></div>
               <button @click="handleLogout" class="w-full flex items-center gap-3 px-4 py-2.5 text-sm font-semibold text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-900/20 rounded-xl transition-colors">
@@ -219,7 +216,6 @@ const navItems = [
 const bottomLeft = [navItems[0], navItems[1]]
 const bottomRight = [navItems[3], navItems[4]]
 
-const isMobileMenuOpen = ref(false)
 const isProfileOpen = ref(false)
 const isNotifOpen = ref(false)
 const isDark = ref(true)
