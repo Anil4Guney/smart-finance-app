@@ -13,9 +13,7 @@
     >
       <div class="h-16 flex items-center justify-between px-6 border-b border-gray-200 dark:border-gray-800 shrink-0">
         <span class="flex items-center gap-2.5 text-xl font-extrabold tracking-tight text-gray-900 dark:text-white">
-          <span class="w-8 h-8 rounded-xl bg-gradient-to-br from-emerald-400 to-emerald-700 flex items-center justify-center shadow-lg shadow-emerald-900/30">
-            <i class="pi pi-wallet text-white text-sm"></i>
-          </span>
+          <img src="/icon.svg" alt="" class="w-8 h-8 rounded-xl shadow-lg shadow-emerald-900/30" />
           SmartFinance
         </span>
         <button @click="isMobileMenuOpen = false" aria-label="Menüyü kapat" class="lg:hidden text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white">
@@ -142,9 +140,21 @@
       </div>
     </header>
 
+    <!-- Offline strip: the app keeps working with the last saved data -->
+    <div
+      v-if="!isOnline"
+      role="status"
+      class="fixed top-16 left-0 lg:left-64 right-0 z-20 bg-amber-500 text-amber-950 text-xs sm:text-sm font-semibold text-center px-3 py-1.5 flex items-center justify-center gap-2"
+    >
+      <i class="pi pi-wifi text-sm"></i>
+      Çevrimdışısın. Son kaydedilen veriler gösteriliyor; yeni kayıtlar için bağlantı gerekir.
+    </div>
+
     <main class="app-main ml-0 lg:ml-64 mt-16 p-4 sm:p-6 pb-28 lg:pb-6 w-full overflow-y-auto overflow-x-hidden bg-gray-50 dark:bg-gray-900">
       <slot />
     </main>
+
+    <InstallPrompt />
 
     <!-- Phones and tablets: thumb-reach navigation with a quick "add" button -->
     <nav
@@ -193,7 +203,7 @@
 
 <script setup lang="ts">
 import ConfirmDialog from 'primevue/confirmdialog'
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
 import { useSubscriptions } from '~/composables/useSubscriptions'
 
 const { logout, user } = useAuth()
@@ -213,6 +223,8 @@ const isMobileMenuOpen = ref(false)
 const isProfileOpen = ref(false)
 const isNotifOpen = ref(false)
 const isDark = ref(true)
+const isOnline = ref(true)
+const syncOnline = () => { isOnline.value = navigator.onLine }
 
 const displayName = computed(() =>
   user.value?.first_name
@@ -230,5 +242,13 @@ const toggleDarkMode = () => {
 // The head script already applied the saved theme (dark by default); just mirror it
 onMounted(() => {
   isDark.value = document.documentElement.classList.contains('dark')
+  syncOnline()
+  window.addEventListener('online', syncOnline)
+  window.addEventListener('offline', syncOnline)
+})
+
+onBeforeUnmount(() => {
+  window.removeEventListener('online', syncOnline)
+  window.removeEventListener('offline', syncOnline)
 })
 </script>

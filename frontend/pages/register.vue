@@ -3,7 +3,7 @@
     <div class="auth-brand hidden lg:flex flex-col justify-center px-12 xl:px-20">
       <div class="auth-brand-inner">
         <div class="logo-placeholder">
-          <i class="pi pi-wallet text-5xl text-white/90" />
+          <img src="/icon.svg" alt="" class="w-16 h-16 rounded-2xl shadow-2xl" />
         </div>
         <h1 class="auth-title">SmartFinance</h1>
         <p class="auth-subtitle">
@@ -16,7 +16,7 @@
       <div class="auth-card w-full max-w-md">
         <div class="text-center mb-8 lg:hidden">
           <div class="logo-placeholder logo-mobile inline-flex mb-4">
-            <i class="pi pi-wallet text-4xl text-white/90" />
+            <img src="/icon.svg" alt="" class="w-full h-full rounded-2xl" />
           </div>
           <h1 class="text-xl font-bold text-gray-900 dark:text-white">SmartFinance</h1>
         </div>

@@ -248,7 +248,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref, onMounted } from 'vue'
+import { computed, ref, onMounted, onBeforeUnmount } from 'vue'
 import { useRouter } from 'vue-router'
 import Chart from 'primevue/chart'
 import { Chart as ChartJS } from 'chart.js/auto'
@@ -302,16 +302,20 @@ const upcomingItems = computed(() => [...subscriptions.value]
 
 // Chart text/grid colors follow the light/dark theme
 const chartKey = ref(0)
-const applyChartTheme = () => {
+let themeObserver: MutationObserver | undefined
+const applyChartTheme = (redraw = true) => {
   const dark = document.documentElement.classList.contains('dark')
   ChartJS.defaults.color = dark ? '#c4cad6' : '#4b5567'
   ChartJS.defaults.borderColor = dark ? 'rgba(148, 163, 184, 0.15)' : 'rgba(156, 163, 175, 0.2)'
-  chartKey.value++
+  // Only redraw when the user switches theme; on first load the charts are not drawn yet
+  if (redraw) chartKey.value++
 }
+onBeforeUnmount(() => themeObserver?.disconnect())
 
 onMounted(async () => {
-  applyChartTheme()
-  new MutationObserver(applyChartTheme).observe(document.documentElement, { attributes: true, attributeFilter: ['class'] })
+  applyChartTheme(false)
+  themeObserver = new MutationObserver(() => applyChartTheme(true))
+  themeObserver.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] })
   // Forecast first: it also records recurring items that are due today
   await loadForecast()
   loadSubscriptions()

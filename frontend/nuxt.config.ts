@@ -91,7 +91,13 @@ const themeScript =
 export default defineNuxtConfig({
   compatibilityDate: '2024-11-01',
   devtools: { enabled: true },
-  modules: ['@nuxtjs/tailwindcss', '@primevue/nuxt-module'],
+  modules: ['@nuxtjs/tailwindcss', '@primevue/nuxt-module', '@vite-pwa/nuxt'],
+
+  // The app lives behind a login and talks to a separate API, so it runs fully in the browser.
+  // That also lets the installed app open offline from its cached shell.
+  ssr: false,
+  // Emit the app shell (index.html) so the service worker can open the app offline
+  nitro: { prerender: { routes: ['/'] } },
 
   // Backend address. Override at runtime with NUXT_PUBLIC_API_BASE.
   // Defaults: local Django in development, the Render backend in production builds.
@@ -111,6 +117,15 @@ export default defineNuxtConfig({
         { name: 'viewport', content: 'width=device-width, initial-scale=1, viewport-fit=cover' },
         { name: 'theme-color', content: '#0f1626' },
         { name: 'description', content: 'Gelir, gider, taksit ve faturalarını tek yerden takip et. Ay sonunu önceden gör.' },
+        { name: 'mobile-web-app-capable', content: 'yes' },
+        { name: 'apple-mobile-web-app-capable', content: 'yes' },
+        { name: 'apple-mobile-web-app-title', content: 'SmartFinance' },
+      ],
+      link: [
+        { rel: 'manifest', href: '/manifest.webmanifest' },
+        { rel: 'icon', href: '/favicon.ico', sizes: '48x48' },
+        { rel: 'icon', href: '/icon.svg', type: 'image/svg+xml', sizes: 'any' },
+        { rel: 'apple-touch-icon', href: '/apple-touch-icon-180x180.png' },
       ],
       script: [{ innerHTML: themeScript, tagPosition: 'head' }],
     },
@@ -144,6 +159,64 @@ export default defineNuxtConfig({
         },
       },
     },
+  },
+
+  // Installable app (manifest + service worker)
+  pwa: {
+    registerType: 'autoUpdate',
+    manifest: {
+      name: 'SmartFinance',
+      short_name: 'SmartFinance',
+      description: 'Gelir, gider, taksit ve faturalarını tek yerden takip et.',
+      lang: 'tr',
+      dir: 'ltr',
+      start_url: '/',
+      scope: '/',
+      id: '/',
+      display: 'standalone',
+      orientation: 'portrait',
+      theme_color: '#0f1626',
+      background_color: '#0f1626',
+      categories: ['finance', 'productivity'],
+      icons: [
+        { src: 'pwa-64x64.png', sizes: '64x64', type: 'image/png' },
+        { src: 'pwa-192x192.png', sizes: '192x192', type: 'image/png' },
+        { src: 'pwa-512x512.png', sizes: '512x512', type: 'image/png' },
+        { src: 'maskable-icon-512x512.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' },
+      ],
+      shortcuts: [
+        { name: 'Yeni işlem', short_name: 'Yeni işlem', url: '/transactions?yeni=1', icons: [{ src: 'pwa-192x192.png', sizes: '192x192' }] },
+        { name: 'Yapay zekâ asistanı', short_name: 'Asistan', url: '/advisor', icons: [{ src: 'pwa-192x192.png', sizes: '192x192' }] },
+      ],
+    },
+    workbox: {
+      navigateFallback: '/',
+      globPatterns: ['**/*.{js,css,html,png,svg,ico,woff2}'],
+      cleanupOutdatedCaches: true,
+      runtimeCaching: [
+        {
+          // The user's own data: fresh when online, last known copy when offline.
+          // This cache is deleted on logout (see useAuth).
+          urlPattern: ({ request, url }: { request: Request; url: URL }) =>
+            request.method === 'GET' && /^\/api\/(transactions|subscriptions|savings-goals|budgets|forecast)\/$/.test(url.pathname),
+          handler: 'NetworkFirst',
+          options: {
+            cacheName: 'sf-api',
+            networkTimeoutSeconds: 4,
+            expiration: { maxEntries: 30, maxAgeSeconds: 60 * 60 * 24 * 7 },
+            cacheableResponse: { statuses: [200] },
+          },
+        },
+        {
+          // Exchange rates
+          urlPattern: /^https:\/\/open\.er-api\.com\/.*/i,
+          handler: 'StaleWhileRevalidate',
+          options: { cacheName: 'sf-rates', expiration: { maxEntries: 2, maxAgeSeconds: 60 * 60 * 24 } },
+        },
+      ],
+    },
+    client: { installPrompt: true },
+    devOptions: { enabled: false },
   },
 
   css: ['@fontsource-variable/inter', 'primeicons/primeicons.css', '~/assets/css/app.css'],

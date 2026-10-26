@@ -17,9 +17,20 @@ export const useAuth = () => {
         headers: { Authorization: `Bearer ${token.value}` }
       })
       user.value = response
-    } catch (error) {
+      try { localStorage.setItem('sf_user', JSON.stringify(response)) } catch { /* private mode */ }
+    } catch (error: any) {
       console.error('Kullanıcı bilgileri çekilemedi:', error)
-      user.value = null
+      if (error?.response?.status === 401) {
+        user.value = null
+        return
+      }
+      // Offline or server asleep: show the last known profile instead of an empty header
+      try {
+        const saved = localStorage.getItem('sf_user')
+        user.value = saved ? JSON.parse(saved) : null
+      } catch {
+        user.value = null
+      }
     }
   }
 
@@ -77,7 +88,10 @@ export const useAuth = () => {
     token.value = null
     user.value = null 
     if (import.meta.client) {
+      // The offline copy of this user's data must not outlive the session
+      if ('caches' in window) caches.delete('sf-api').catch(() => {})
       localStorage.removeItem('user')
+      localStorage.removeItem('sf_user')
       localStorage.removeItem('budgetLimits') 
       window.location.href = '/login'
     }
