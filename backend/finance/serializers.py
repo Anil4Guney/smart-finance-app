@@ -26,6 +26,7 @@ class CustomUserSerializer(BaseUserSerializer):
 class TransactionSerializer(serializers.ModelSerializer):
     class Meta:
         model = Transaction
+        extra_kwargs = {'description': {'max_length': 2000}}
         fields = [
             'id',
             'title',
@@ -36,6 +37,16 @@ class TransactionSerializer(serializers.ModelSerializer):
             'description',
         ]
     
+    def validate_amount(self, value):
+        if value <= 0:
+            raise serializers.ValidationError('Tutar sıfırdan büyük olmalı.')
+        return value
+
+    def validate_date(self, value):
+        if not (2000 <= value.year <= 2100):
+            raise serializers.ValidationError('Geçerli bir tarih gir.')
+        return value
+
     def create(self, validated_data):
         # İşlemi yapan kullanıcıyı otomatik olarak ata
         validated_data['user'] = self.context['request'].user
@@ -47,7 +58,17 @@ class SavingsGoalSerializer(serializers.ModelSerializer):
         model = SavingsGoal
         fields = ['id', 'title', 'target_amount', 'current_amount', 'created_at']
         read_only_fields = ['id', 'created_at']
-    
+
+    def validate_target_amount(self, value):
+        if value <= 0:
+            raise serializers.ValidationError('Hedef tutar sıfırdan büyük olmalı.')
+        return value
+
+    def validate_current_amount(self, value):
+        if value < 0:
+            raise serializers.ValidationError('Tutar negatif olamaz.')
+        return value
+
     def create(self, validated_data):
         # İşlemi yapan kullanıcıyı otomatik olarak ata
         validated_data['user'] = self.context['request'].user
@@ -59,6 +80,11 @@ class CategoryBudgetSerializer(serializers.ModelSerializer):
         model = CategoryBudget
         fields = ['id', 'category', 'limit_amount', 'created_at', 'updated_at']
         read_only_fields = ['id', 'created_at', 'updated_at']
+
+    def validate_limit_amount(self, value):
+        if value <= 0:
+            raise serializers.ValidationError('Limit sıfırdan büyük olmalı.')
+        return value
 
     def create(self, validated_data):
         # Bütçeyi oluşturan kullanıcıyı otomatik olarak ata

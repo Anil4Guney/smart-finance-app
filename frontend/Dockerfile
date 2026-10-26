@@ -1,5 +1,5 @@
 # Node.js'in hafif bir sürümünü kullanıyoruz
-FROM node:18-alpine
+FROM node:22-alpine
 
 # Çalışma dizini
 WORKDIR /app

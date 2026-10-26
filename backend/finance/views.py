@@ -1,7 +1,6 @@
 import logging
 from decimal import Decimal, InvalidOperation
 
-import google.generativeai as genai
 from django.conf import settings
 from django.db import transaction as db_transaction
 
@@ -21,7 +20,9 @@ from .serializers import (
     CategoryBudgetSerializer, 
     SubscriptionSerializer
 )
-from .services import analyze_receipt, describe_ai_error
+from . import ai
+from .ai import AIUnavailable
+from .services import InvalidReceiptImage, analyze_receipt
 from .billing import bill_due_subscriptions
 from .forecast import monthly_forecast
 
@@ -47,6 +48,11 @@ class TransactionViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         return Transaction.objects.filter(user=self.request.user)
+
+    def list(self, request, *args, **kwargs):
+        # Record recurring items that came due, so this list is never behind the dashboard
+        bill_due_subscriptions(user=request.user)
+        return super().list(request, *args, **kwargs)
 
     def perform_create(self, serializer):
         serializer.save(user=self.request.user)
@@ -153,12 +159,14 @@ def scan_receipt(request: Request) -> Response:
         max_mb = settings.MAX_RECEIPT_UPLOAD_BYTES // (1024 * 1024)
         return Response({"detail": f"Görsel çok büyük (en fazla {max_mb} MB)."}, status=400)
     try:
-        data = analyze_receipt(image)
-        return Response(data)
-    except Exception as exc:
+        return Response(analyze_receipt(image))
+    except InvalidReceiptImage as exc:
+        return Response({"detail": str(exc)}, status=400)
+    except AIUnavailable as exc:
+        return Response({"detail": exc.message}, status=exc.status_code)
+    except Exception:
         logger.exception("Receipt analysis failed")
-        status_code, message = describe_ai_error(exc, fallback="Fiş okunamadı. Başka bir fotoğraf dene.")
-        return Response({"detail": message}, status=status_code)
+        return Response({"detail": "Fiş okunamadı. Başka bir fotoğraf dene."}, status=502)
 
 
 # --- SENİN ORİJİNAL PROMPT'LARINLA YAPAY ZEKA SOHBET ASİSTANI ---
@@ -243,25 +251,15 @@ class AIChatView(APIView):
         """
 
         try:
-            api_key = settings.GEMINI_API_KEY
-            if not api_key:
-                return Response({"error": "Yapay zekâ servisi yapılandırılmamış."}, status=503)
-
-            genai.configure(api_key=api_key)
-            model = genai.GenerativeModel(settings.GEMINI_CHAT_MODEL)
-            
-            # Gemini'a promptu gönderiyoruz
-            response = model.generate_content(
-                system_prompt, request_options={'timeout': settings.AI_CHAT_TIMEOUT_SECONDS}
-            )
-            
+            # Light, fast model first; the main model is the fallback when it is overloaded
+            reply = ai.generate([system_prompt], models=[settings.GEMINI_CHAT_MODEL, settings.GEMINI_MODEL])
             # Frontend'e "reply" objesi içinde düz metin dönüyoruz
-            return Response({"reply": response.text})
-            
-        except Exception as exc:
+            return Response({"reply": reply})
+        except AIUnavailable as exc:
+            return Response({"error": exc.message}, status=exc.status_code)
+        except Exception:
             logger.exception("AI chat request failed")
-            status_code, message = describe_ai_error(exc)
-            return Response({"error": message}, status=status_code)
+            return Response({"error": "Yapay zekâ asistanı şu an kullanılamıyor. Lütfen daha sonra tekrar dene."}, status=502)
 
 # --- AY SONU TAHMİNİ ---
 

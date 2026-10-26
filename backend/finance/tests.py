@@ -317,48 +317,169 @@ class ForecastTests(TestCase):
 
 
 class AiChatCurrencyTests(ApiTestCase):
-    def test_prompt_uses_users_currency(self):
+    def _ask(self, payload):
         from unittest import mock
 
-        Transaction.objects.create(user=self.user, title='Market', amount=Decimal('10'), transaction_type='EXPENSE',
-                                   category='Food', date=date.today())
         captured = {}
 
-        def fake_generate(self_model, prompt, **kwargs):
-            captured['prompt'] = prompt
-            return mock.Mock(text='tamam')
+        def fake_generate(contents, models):
+            captured['prompt'] = contents[0]
+            return 'tamam'
 
-        with mock.patch('google.generativeai.GenerativeModel.generate_content', fake_generate), \
-             self.settings(GEMINI_API_KEY='test-key'):
-            res = self.client.post('/api/chat/', {'prompt': 'x', 'currency': 'TRY', 'rate': 40}, format='json')
+        with mock.patch('finance.ai.generate', fake_generate):
+            res = self.client.post('/api/chat/', payload, format='json')
+        return res, captured
+
+    def test_prompt_uses_users_currency(self):
+        Transaction.objects.create(user=self.user, title='Market', amount=Decimal('10'), transaction_type='EXPENSE',
+                                   category='Food', date=date.today())
+        res, captured = self._ask({'prompt': 'x', 'currency': 'TRY', 'rate': 40})
         self.assertEqual(res.status_code, 200)
         self.assertIn('400.00 TRY', captured['prompt'])  # 10 USD x 40
         self.assertNotIn('$', captured['prompt'].split('Kullanıcının Sorusu')[0])
 
     def test_bad_currency_or_rate_falls_back_to_usd(self):
-        from unittest import mock
-
-        captured = {}
-
-        def fake_generate(self_model, prompt, **kwargs):
-            captured['prompt'] = prompt
-            return mock.Mock(text='tamam')
-
-        with mock.patch('google.generativeai.GenerativeModel.generate_content', fake_generate), \
-             self.settings(GEMINI_API_KEY='test-key'):
-            self.client.post('/api/chat/', {'prompt': 'x', 'currency': 'XXX', 'rate': 'abc'}, format='json')
+        _, captured = self._ask({'prompt': 'x', 'currency': 'XXX', 'rate': 'abc'})
         self.assertIn('USD cinsindendir', captured['prompt'])
 
 
-class AiErrorMessageTests(TestCase):
-    def test_known_gemini_errors_get_clear_messages(self):
-        from google.api_core import exceptions as google_errors
-        from .services import describe_ai_error
+def gemini_error(code):
+    from google.genai import errors
 
-        self.assertIn('kullanım sınırı', describe_ai_error(google_errors.ResourceExhausted('quota'))[1])
-        self.assertIn('GEMINI_API_KEY', describe_ai_error(google_errors.PermissionDenied('API key expired'))[1])
-        self.assertIn('GEMINI_MODEL', describe_ai_error(google_errors.NotFound('model gone'))[1])
-        self.assertEqual(describe_ai_error(RuntimeError('boom'), fallback='x'), (502, 'x'))
+    cls = errors.ServerError if code >= 500 else errors.ClientError
+    return cls(code, {'error': {'code': code, 'message': 'x', 'status': 'X'}})
+
+
+class AiLayerTests(TestCase):
+    def setUp(self):
+        cache.clear()
+
+    def _client(self, behaviours):
+        """A fake Gemini client; `behaviours` maps model name -> list of results/exceptions."""
+        from unittest import mock
+
+        calls = []
+
+        def generate_content(model, contents):
+            calls.append(model)
+            result = behaviours[model].pop(0)
+            if isinstance(result, Exception):
+                raise result
+            return mock.Mock(text=result)
+
+        client = mock.Mock()
+        client.models.generate_content = generate_content
+        return client, calls
+
+    def run_generate(self, behaviours, models, **settings_kw):
+        from unittest import mock
+        from . import ai
+
+        client, calls = self._client(behaviours)
+        with mock.patch('finance.ai.genai.Client', return_value=client), \
+             mock.patch('finance.ai.time.sleep'), \
+             self.settings(GEMINI_API_KEY='k', **settings_kw):
+            return ai.generate(['hi'], models=models), calls
+
+    def test_busy_model_is_retried_once_then_succeeds(self):
+        text, calls = self.run_generate({'a': [gemini_error(503), 'merhaba']}, ['a'])
+        self.assertEqual(text, 'merhaba')
+        self.assertEqual(calls, ['a', 'a'])
+
+    def test_falls_back_to_next_model_when_first_stays_busy(self):
+        text, calls = self.run_generate({'a': [gemini_error(503), gemini_error(503)], 'b': ['yedek']}, ['a', 'b'])
+        self.assertEqual(text, 'yedek')
+        self.assertEqual(calls, ['a', 'a', 'b'])
+
+    def test_quota_error_is_not_retried_and_gets_a_clear_message(self):
+        from . import ai
+
+        with self.assertRaises(ai.AIUnavailable) as ctx:
+            self.run_generate({'a': [gemini_error(429)]}, ['a'])
+        self.assertEqual(ctx.exception.status_code, 503)
+        self.assertIn('kullanım sınırı', ctx.exception.message)
+
+    def test_empty_answer_is_an_error(self):
+        from . import ai
+
+        with self.assertRaises(ai.AIUnavailable) as ctx:
+            self.run_generate({'a': ['   ']}, ['a'])
+        self.assertEqual(ctx.exception.status_code, 502)
+
+    def test_missing_key(self):
+        from . import ai
+
+        with self.settings(GEMINI_API_KEY=''), self.assertRaises(ai.AIUnavailable) as ctx:
+            ai.generate(['x'], models=['a'])
+        self.assertEqual(ctx.exception.status_code, 503)
+
+    def test_daily_call_limit(self):
+        from . import ai
+
+        self.run_generate({'a': ['1']}, ['a'], AI_DAILY_CALL_LIMIT=1)
+        with self.assertRaises(ai.AIUnavailable) as ctx:
+            self.run_generate({'a': ['2']}, ['a'], AI_DAILY_CALL_LIMIT=1)
+        self.assertIn('bugünkü', ctx.exception.message)
+
+    def test_error_messages(self):
+        from . import ai
+
+        self.assertIn('GEMINI_API_KEY', ai.describe_ai_error(gemini_error(403))[1])
+        self.assertIn('GEMINI_MODEL', ai.describe_ai_error(gemini_error(404))[1])
+        self.assertIn('yoğun', ai.describe_ai_error(gemini_error(503))[1])
+        self.assertEqual(ai.describe_ai_error(RuntimeError('boom'), fallback='x'), (502, 'x'))
+
+
+class ReceiptScanTests(ApiTestCase):
+    def _png(self, size=(40, 40)):
+        from io import BytesIO
+        from PIL import Image
+
+        buf = BytesIO()
+        Image.new('RGB', size, 'white').save(buf, 'PNG')
+        return buf.getvalue()
+
+    def _scan(self, image_bytes, ai_text):
+        from unittest import mock
+        from django.core.files.uploadedfile import SimpleUploadedFile
+
+        with mock.patch('finance.ai.generate', return_value=ai_text):
+            return self.client.post(
+                '/api/scan-receipt/',
+                {'image': SimpleUploadedFile('r.png', image_bytes, content_type='image/png')},
+                format='multipart',
+            )
+
+    def test_reads_receipt(self):
+        res = self._scan(self._png(), '```json\n{"title":"Migros","amount":145.5,"currency":"try","date":"2026-10-20","category":"Food"}\n```')
+        self.assertEqual(res.status_code, 200)
+        self.assertEqual(res.data, {'title': 'Migros', 'amount': 145.5, 'currency': 'TRY', 'date': '2026-10-20', 'category': 'Food'})
+
+    def test_not_an_image_is_a_400(self):
+        res = self._scan(b'this is not an image', '{}')
+        self.assertEqual(res.status_code, 400)
+
+    def test_garbage_values_are_cleaned(self):
+        res = self._scan(self._png(), '{"title":"","amount":"1e999","currency":"TURKISH LIRA","date":"yesterday","category":"Hack"}')
+        self.assertEqual(res.status_code, 200)
+        self.assertEqual(res.data['amount'], 0)
+        self.assertEqual(res.data['currency'], '')
+        self.assertEqual(res.data['date'], '')
+        self.assertEqual(res.data['category'], 'Other')
+        self.assertEqual(res.data['title'], 'Fiş')
+
+    def test_answer_that_is_not_json_is_a_clean_502(self):
+        res = self._scan(self._png(), 'Üzgünüm, okuyamadım')
+        self.assertEqual(res.status_code, 502)
+
+    def test_image_is_shrunk_before_sending(self):
+        from . import services
+
+        jpeg = services._prepare_image(self._png(size=(4000, 3000)))
+        from io import BytesIO
+        from PIL import Image
+
+        self.assertLessEqual(max(Image.open(BytesIO(jpeg)).size), services.MAX_IMAGE_SIDE)
 
 
 class InstallmentRoundingTests(TestCase):
@@ -388,3 +509,109 @@ class InstallmentRoundingTests(TestCase):
                                 amount=Decimal('50.00'))
         self.assertEqual(sub.remaining_amount, Decimal('150.00'))
         self.assertEqual(sub.payment_amount(3), Decimal('50.00'))
+
+
+class InputValidationTests(ApiTestCase):
+    def test_transaction_rejects_bad_values(self):
+        base = {'title': 'x', 'transaction_type': 'EXPENSE', 'category': 'Food', 'date': '2026-10-01'}
+        self.assertEqual(self.client.post('/api/transactions/', {**base, 'amount': '-5'}, format='json').status_code, 400)
+        self.assertEqual(self.client.post('/api/transactions/', {**base, 'amount': '0'}, format='json').status_code, 400)
+        self.assertEqual(self.client.post('/api/transactions/', {**base, 'amount': '5', 'date': '1800-01-01'}, format='json').status_code, 400)
+        self.assertEqual(self.client.post('/api/transactions/', {**base, 'amount': '5', 'description': 'x' * 2001}, format='json').status_code, 400)
+        self.assertEqual(self.client.post('/api/transactions/', {**base, 'amount': '5'}, format='json').status_code, 201)
+
+    def test_savings_goal_rejects_bad_values(self):
+        self.assertEqual(self.client.post('/api/savings-goals/', {'title': 'x', 'target_amount': '0'}, format='json').status_code, 400)
+        self.assertEqual(self.client.post('/api/savings-goals/', {'title': 'x', 'target_amount': '10', 'current_amount': '-1'}, format='json').status_code, 400)
+        self.assertEqual(self.client.post('/api/savings-goals/', {'title': 'x', 'target_amount': '10'}, format='json').status_code, 201)
+
+    def test_cannot_touch_other_users_data(self):
+        other = User.objects.create_user('ayse', password='S3cure-pass-123')
+        tx = Transaction.objects.create(user=other, title='gizli', amount=1, transaction_type='EXPENSE',
+                                        category='Food', date=date(2026, 10, 1))
+        self.assertEqual(self.client.get(f'/api/transactions/{tx.pk}/').status_code, 404)
+        self.assertEqual(self.client.delete(f'/api/transactions/{tx.pk}/').status_code, 404)
+        self.assertEqual(self.client.patch(f'/api/transactions/{tx.pk}/', {'title': 'x'}, format='json').status_code, 404)
+
+    def test_transaction_list_records_due_recurring_items(self):
+        make_subscription(self.user, date.today(), created=date.today())
+        res = self.client.get('/api/transactions/')
+        self.assertEqual(len(res.data), 1)
+
+
+class AuthSecurityTests(TestCase):
+    def setUp(self):
+        cache.clear()
+        self.user = User.objects.create_user('ali', password='S3cure-pass-123')
+        self.client = APIClient()
+
+    def login(self, password='S3cure-pass-123', username='ali'):
+        return self.client.post('/auth/jwt/create/', {'username': username, 'password': password}, format='json')
+
+    def test_login_is_rate_limited_per_username(self):
+        from rest_framework.settings import api_settings
+        from .auth_views import LoginRateThrottle
+
+        original = LoginRateThrottle.THROTTLE_RATES
+        LoginRateThrottle.THROTTLE_RATES = {**api_settings.DEFAULT_THROTTLE_RATES, 'login': '3/hour'}
+        try:
+            codes = [self.login('wrong').status_code for _ in range(4)]
+            other = self.login('wrong', username='someone-else').status_code
+        finally:
+            LoginRateThrottle.THROTTLE_RATES = original
+        self.assertEqual(codes, [401, 401, 401, 429])
+        self.assertEqual(other, 401)  # a different username is not affected
+
+    def test_refresh_rotates_and_old_refresh_stops_working(self):
+        tokens = self.login().data
+        first = self.client.post('/auth/jwt/refresh/', {'refresh': tokens['refresh']}, format='json')
+        self.assertEqual(first.status_code, 200)
+        self.assertNotEqual(first.data['refresh'], tokens['refresh'])
+        reused = self.client.post('/auth/jwt/refresh/', {'refresh': tokens['refresh']}, format='json')
+        self.assertEqual(reused.status_code, 401)
+
+    def test_logout_invalidates_refresh_token(self):
+        tokens = self.login().data
+        self.assertEqual(self.client.post('/auth/jwt/logout/', {'refresh': tokens['refresh']}, format='json').status_code, 200)
+        self.assertEqual(self.client.post('/auth/jwt/refresh/', {'refresh': tokens['refresh']}, format='json').status_code, 401)
+
+    def test_access_token_is_short_lived(self):
+        from django.conf import settings
+
+        self.assertLessEqual(settings.SIMPLE_JWT['ACCESS_TOKEN_LIFETIME'].total_seconds(), 60 * 60)
+
+    def test_email_based_flows_are_closed(self):
+        for path in ('reset_password', 'resend_activation', 'reset_username'):
+            res = self.client.post(f'/auth/users/{path}/', {'email': 'a@b.com'}, format='json')
+            self.assertIn(res.status_code, (401, 403), path)
+
+    def test_account_can_be_deleted_with_password_and_takes_its_data_along(self):
+        Transaction.objects.create(user=self.user, title='x', amount=1, transaction_type='EXPENSE',
+                                   category='Food', date=date(2026, 10, 1))
+        access = self.login().data['access']
+        self.client.credentials(HTTP_AUTHORIZATION=f'Bearer {access}')
+
+        wrong = self.client.delete('/auth/users/me/', {'current_password': 'nope'}, format='json')
+        self.assertEqual(wrong.status_code, 400)
+        self.assertTrue(User.objects.filter(pk=self.user.pk).exists())
+
+        ok = self.client.delete('/auth/users/me/', {'current_password': 'S3cure-pass-123'}, format='json')
+        self.assertEqual(ok.status_code, 204)
+        self.assertFalse(User.objects.filter(pk=self.user.pk).exists())
+        self.assertEqual(Transaction.objects.count(), 0)
+
+    def test_registration_validates_password(self):
+        res = self.client.post('/auth/users/', {'username': 'yeni', 'password': '12345678', 'email': 'y@x.com'}, format='json')
+        self.assertEqual(res.status_code, 400)
+        self.assertIn('password', res.data)
+
+
+class ProductionSettingsTests(TestCase):
+    def test_secure_defaults(self):
+        from django.conf import settings
+
+        self.assertFalse(settings.DEBUG)
+        self.assertEqual(settings.DATABASES['default']['CONN_HEALTH_CHECKS'], True)
+        self.assertIn('whitenoise.middleware.WhiteNoiseMiddleware', settings.MIDDLEWARE)
+        self.assertNotIn('*', settings.ALLOWED_HOSTS)
+        self.assertFalse(getattr(settings, 'CORS_ALLOW_ALL_ORIGINS', False))

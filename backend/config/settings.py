@@ -56,8 +56,12 @@ GEMINI_API_KEY = (
 GEMINI_MODEL = os.environ.get('GEMINI_MODEL', 'gemini-flash-latest')
 # The chat uses the lighter, faster model; receipts keep the more accurate one.
 GEMINI_CHAT_MODEL = os.environ.get('GEMINI_CHAT_MODEL', 'gemini-flash-lite-latest')
-# Give up instead of keeping the user waiting when Gemini is slow
-AI_CHAT_TIMEOUT_SECONDS = int(os.environ.get('AI_CHAT_TIMEOUT_SECONDS', '45'))
+# Per request to Gemini, and the most time one user request may spend on retries/fallbacks
+# (the web server kills requests after 120 s)
+AI_REQUEST_TIMEOUT_SECONDS = int(os.environ.get('AI_REQUEST_TIMEOUT_SECONDS', '20'))
+AI_TOTAL_BUDGET_SECONDS = int(os.environ.get('AI_TOTAL_BUDGET_SECONDS', '45'))
+# Hard cap on Gemini calls per day across all users (cost / quota protection). 0 = no cap.
+AI_DAILY_CALL_LIMIT = int(os.environ.get('AI_DAILY_CALL_LIMIT', '2000'))
 
 # Largest receipt image accepted by /api/scan-receipt/ (bytes).
 MAX_RECEIPT_UPLOAD_BYTES = 5 * 1024 * 1024
@@ -72,6 +76,7 @@ INSTALLED_APPS = [
 
     'rest_framework',
     'rest_framework_simplejwt',
+    'rest_framework_simplejwt.token_blacklist',  # logout / rotated refresh tokens stop working
     'corsheaders',
     'djoser',
 
@@ -80,6 +85,7 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware',  # serves the admin's static files in production
     'django.contrib.sessions.middleware.SessionMiddleware',
     'corsheaders.middleware.CorsMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -116,6 +122,8 @@ DATABASES = {
     'default': dj_database_url.parse(
         os.environ.get('DATABASE_URL', '').strip() or f"sqlite:///{BASE_DIR / 'db.sqlite3'}",
         conn_max_age=600,
+        # Serverless Postgres (Neon) drops idle connections; check before reuse instead of failing the request
+        conn_health_checks=True,
     )
 }
 
@@ -133,6 +141,10 @@ USE_TZ = True
 
 STATIC_URL = 'static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'
+STORAGES = {
+    'default': {'BACKEND': 'django.core.files.storage.FileSystemStorage'},
+    'staticfiles': {'BACKEND': 'whitenoise.storage.CompressedStaticFilesStorage'},
+}
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 # --- REST Framework ---
@@ -147,16 +159,21 @@ REST_FRAMEWORK = {
     'DEFAULT_THROTTLE_RATES': {
         'ai_chat': os.environ.get('AI_CHAT_RATE', '30/hour'),
         'receipt_scan': os.environ.get('RECEIPT_SCAN_RATE', '20/hour'),
+        # Failed-or-not login attempts per username (slows password guessing)
+        'login': os.environ.get('LOGIN_RATE', '20/hour'),
     },
 }
 
 SIMPLE_JWT = {
-    'ACCESS_TOKEN_LIFETIME': timedelta(days=1),
-    'REFRESH_TOKEN_LIFETIME': timedelta(days=7),
+    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=30),
+    'REFRESH_TOKEN_LIFETIME': timedelta(days=14),
     'ROTATE_REFRESH_TOKENS': True,
+    'BLACKLIST_AFTER_ROTATION': True,
 }
 
 DJOSER = {
+    # We use JWT only; without this, deleting an account crashes looking for DRF's (unused) token table
+    'TOKEN_MODEL': None,
     'SERIALIZERS': {
         'user_create': 'finance.serializers.CustomUserCreateSerializer',
         'user': 'finance.serializers.CustomUserSerializer',
@@ -164,6 +181,13 @@ DJOSER = {
     },
     'PERMISSIONS': {
         'user': ['rest_framework.permissions.IsAuthenticated'],
+        # No e-mail sending is set up: keep activation / reset flows closed instead of failing with 500s
+        'activation': ['rest_framework.permissions.IsAdminUser'],
+        'password_reset': ['rest_framework.permissions.IsAdminUser'],
+        'password_reset_confirm': ['rest_framework.permissions.IsAdminUser'],
+        'username_reset': ['rest_framework.permissions.IsAdminUser'],
+        'username_reset_confirm': ['rest_framework.permissions.IsAdminUser'],
+        'set_username': ['rest_framework.permissions.IsAdminUser'],
     },
 }
 
@@ -180,3 +204,24 @@ if not DEBUG:
     SESSION_COOKIE_SECURE = True
     CSRF_COOKIE_SECURE = True
     SECURE_CONTENT_TYPE_NOSNIFF = True
+    # Tell browsers to use HTTPS only (30 days; raise it once everything is confirmed to work)
+    SECURE_HSTS_SECONDS = int(os.environ.get('DJANGO_HSTS_SECONDS', 60 * 60 * 24 * 30))
+    # Hosts like Render already redirect http -> https at the edge; turn this on if yours does not
+    SECURE_SSL_REDIRECT = env_bool('DJANGO_SSL_REDIRECT', default=False)
+
+# --- Logging: without this, server errors (500) are NOT printed in production ---
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'formatters': {
+        'plain': {'format': '%(asctime)s %(levelname)s %(name)s: %(message)s'},
+    },
+    'handlers': {
+        'console': {'class': 'logging.StreamHandler', 'formatter': 'plain'},
+    },
+    'root': {'handlers': ['console'], 'level': os.environ.get('LOG_LEVEL', 'INFO')},
+    'loggers': {
+        'django.request': {'handlers': ['console'], 'level': 'ERROR', 'propagate': False},
+        'django.security': {'handlers': ['console'], 'level': 'WARNING', 'propagate': False},
+    },
+}

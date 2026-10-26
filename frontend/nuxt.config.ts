@@ -90,7 +90,7 @@ const themeScript =
 
 export default defineNuxtConfig({
   compatibilityDate: '2024-11-01',
-  devtools: { enabled: true },
+  devtools: { enabled: false }, // DevTools has an unauthenticated RPC (command execution) while the dev server runs
   modules: ['@nuxtjs/tailwindcss', '@primevue/nuxt-module', '@vite-pwa/nuxt'],
 
   // The app lives behind a login and talks to a separate API, so it runs fully in the browser.
