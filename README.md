@@ -1,49 +1,88 @@
-#  SmartFinance - AI-Powered Personal Finance Manager
+# SmartFinance
 
-<div align="center">
-  <img src="https://img.shields.io/badge/Vue.js-35495E?style=for-the-badge&logo=vuedotjs&logoColor=4FC08D" alt="Vue.js" />
-  <img src="https://img.shields.io/badge/Nuxt-002E3B?style=for-the-badge&logo=nuxtdotjs&logoColor=#00DC82" alt="Nuxt" />
-  <img src="https://img.shields.io/badge/Django-092E20?style=for-the-badge&logo=django&logoColor=white" alt="Django" />
-  <img src="https://img.shields.io/badge/Docker-2CA5E0?style=for-the-badge&logo=docker&logoColor=white" alt="Docker" />
-  <img src="https://img.shields.io/badge/Tailwind_CSS-38B2AC?style=for-the-badge&logo=tailwind-css&logoColor=white" alt="Tailwind" />
-  <img src="https://img.shields.io/badge/Google_Gemini-8E75B2?style=for-the-badge&logo=google&logoColor=white" alt="Gemini AI" />
-</div>
+Gelir, gider, taksit ve faturalarını tek yerden takip eden, ay sonunu önceden gösteren kişisel finans uygulaması.
+Türkçe arayüz, telefona kurulabilir (PWA), yapay zekâ asistanı ve fiş okuma içerir.
 
-<br>
+**Canlı:** https://smart-finance-app-kohl.vercel.app
 
-# Smart Finance App
+## Özellikler
 
-**Live Demo:** [https://smart-finance-app-kohl.vercel.app](https://smart-finance-app-kohl.vercel.app)
+- **Ay sonu tahmini:** şimdiye kadarki gelir/gider + gelecek maaş, kira, fatura, taksit + günlük harcama hızı → ay sonu sonucu ve günlük güvenli harcama
+- **Tekrarlayan gelir/gider:** maaş, kira, fatura, abonelik ve taksitler her ay işlemlere otomatik eklenir (taksitte son taksit küsuratı kapatır)
+- **Yapay zekâ asistanı:** kendi verilerine bakarak soruları cevaplar (Google Gemini)
+- **Fiş tarama:** fişin fotoğrafından tutar, tarih, kategori ve para birimi okunur
+- **Çoklu para birimi:** TL, USD, EUR, GBP, PLN; kurlar canlı alınır
+- **Bütçe limitleri, birikim hedefleri, CSV dışa aktarma, hesabı silme**
+- **PWA:** ana ekrana eklenir, çevrimdışı açılır (son kaydedilen verilerle)
 
+## Teknoloji
 
-https://github.com/user-attachments/assets/38f081ff-1e76-4fa8-9f93-eca949cf889a
+| Katman | Teknoloji |
+|---|---|
+| Ön yüz | Nuxt 3 (tarayıcıda çalışan uygulama), Vue 3, Tailwind CSS, PrimeVue, Chart.js, `@vite-pwa/nuxt` |
+| Arka yüz | Django, Django REST Framework, Djoser, SimpleJWT, WhiteNoise, Gunicorn |
+| Veritabanı | PostgreSQL (üretim, Neon) / SQLite (yerel) |
+| Yapay zekâ | Google Gemini (`google-genai`) |
 
+## Yerelde çalıştırma
 
+Gerekenler: Python 3.12, Node 22.
 
+```bash
+# 1) Arka yüz
+cd backend
+cp .env.example .env          # GEMINI_API_KEY değerini yaz (yapay zekâ için); gerisi yerel için hazır
+python -m venv venv && venv\Scripts\activate    # macOS/Linux: source venv/bin/activate
+pip install -r requirements.txt
+python manage.py migrate
+python manage.py runserver     # http://localhost:8000
 
+# 2) Ön yüz (başka bir terminalde)
+cd frontend
+npm install
+npm run dev                    # http://localhost:3000
+```
 
----
+Docker ile: `backend/.env` dosyasını hazırla, sonra `docker-compose up --build`.
 
-SmartFinance is a modern, full-stack personal finance application designed to help users track their expenses, manage monthly budgets, and achieve their savings goals. Built with a focus on automation and artificial intelligence, it acts as a smart companion for your financial journey.
+Testler: `cd backend && DJANGO_DEBUG=True python manage.py test finance`
 
-###  Key Features
-* **AI Financial Advisor:** Context-aware chatbot powered by Google Gemini AI that analyzes your current financial state, spending habits, and provides personalized insights.
-* **OCR Receipt Scanning:** Instantly extract amounts, titles, and dates from physical receipts using AI vision models.
-* **Smart Auto-Billing:** Intelligent subscription management system that automatically checks due dates and generates expense records to prevent missed tracking.
-* **Secure Authentication:** Robust user authentication and persistent profile synchronization using JWT tokens and Django Djoser.
-* **Advanced Analytics:** Interactive charts and a dynamic 6-month cash flow trend analyzer built with PrimeVue and Chart.js.
-* **Savings Goals & Budgets:** Track your journey toward financial milestones with visual progress bars and dynamic budget limits.
-* **Mobile-First Responsive Design:** Flawless UI experience across desktops, tablets, and smartphones using Tailwind CSS.
-* **Fully Dockerized:** Ready for production with containerized isolated environments for both frontend and backend.
+## Ortam değişkenleri
 
-###  Tech Stack
-* **Frontend:** Nuxt 3, Vue 3 (Composition API), Tailwind CSS, PrimeVue
-* **Backend:** Python 3, Django, Django REST Framework (DRF), Djoser (Auth)
-* **Database:** SQLite (Dev) / PostgreSQL (Prod)
-* **DevOps & Tools:** Docker, Docker Compose, Git
+Hepsi `backend/.env.example` dosyasında açıklanmıştır. Üretimde **şunlar zorunludur**:
 
-###  Local Setup (Docker)
-1. Clone the repository: `git clone https://github.com/Anil4Guney/smart-finance-app.git`
-2. Add your Gemini API Key to `backend/.env`: `GEMINI_API_KEY=your_api_key_here`
-3. Run the containers: `docker-compose up --build`
-4. Access the App: `http://localhost:3000`
+| Değişken | Açıklama |
+|---|---|
+| `DJANGO_SECRET_KEY` | Uzun, rastgele. Yoksa sunucu başlamaz. |
+| `DATABASE_URL` | PostgreSQL adresi. Yoksa SQLite kullanılır ve **her yeniden başlatmada veriler silinir**. |
+| `GEMINI_API_KEY` | Yapay zekâ ve fiş tarama için. |
+
+Ön yüz: `NUXT_PUBLIC_API_BASE` (arka yüz adresi, `/api` olmadan), isteğe bağlı `NUXT_PUBLIC_CONTACT_EMAIL` ve
+`NUXT_PUBLIC_OPERATOR_NAME` (Gizlilik Politikası sayfasında gösterilir).
+
+## Canlıya alma kontrol listesi
+
+**Render (arka yüz)**
+- Root Directory: `backend`
+- Build Command: `pip install -r requirements.txt && python manage.py collectstatic --noinput && python manage.py migrate`
+- Start Command: `gunicorn config.wsgi:application --workers 1 --threads 2 --timeout 120`
+- Environment: `DJANGO_SECRET_KEY`, `DATABASE_URL`, `GEMINI_API_KEY`
+- İlk istek, ücretsiz planda sunucu uyuduysa 30–60 sn sürebilir.
+
+**Vercel (ön yüz)**
+- Root Directory: `frontend`; ek ayar gerekmez (adres koddan gelir).
+
+**Yayından önce**
+- Gizlilik Politikası'ndaki bilgileri kendine göre tamamla (`NUXT_PUBLIC_OPERATOR_NAME`, `NUXT_PUBLIC_CONTACT_EMAIL`).
+- Gemini ücretsiz kullanımında Google, gönderilen içeriği ürünlerini geliştirmek için kullanabilir. Finansal veri gönderdiğin için
+  gerçek kullanıcılar gelmeden **ücretli (faturalandırmalı) Gemini planına** geçmeyi veya politikadaki ifadeyi buna göre güncellemeyi düşün.
+- `npm audit` hâlâ 7 uyarı gösterir; hepsi Nuxt 4'e geçişle kapanır (geliştirme araçlarındadır, canlı uygulamayı etkilemez).
+
+## Güvenlik özeti
+
+- Kısa ömürlü (30 dk) erişim anahtarı + dönen yenileme anahtarı; çıkışta sunucuda geçersiz kılınır
+- Girişte kullanıcı adı başına deneme sınırı; yapay zekâ uç noktalarında kullanıcı başına ve günlük toplam sınır
+- Her kullanıcı yalnızca kendi verisine erişir; hesap silme tüm verileri siler
+- HTTPS zorunlu (HSTS), CORS yalnızca kendi ön yüz adresine açık
+- Ön yüzde güvenlik başlıkları (CSP, X-Frame-Options, nosniff, Permissions-Policy)
+- Gizli anahtarlar yalnızca ortam değişkenlerinde; `.env` dosyaları git'e girmez
