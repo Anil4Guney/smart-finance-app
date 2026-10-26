@@ -1,11 +1,11 @@
 <template>
-  <div class="p-6 max-w-[1400px] mx-auto">
-    <div class="mb-8">
-      <h1 class="text-3xl font-bold text-gray-900 dark:text-white transition-colors duration-300">My Profile</h1>
+  <div class="lg:p-2 max-w-[1400px] mx-auto">
+    <div class="mb-6 sm:mb-8">
+      <h1 class="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white transition-colors duration-300">My Profile</h1>
       <p class="mt-2 text-gray-600 dark:text-gray-400">View and update your personal account information.</p>
     </div>
 
-    <div class="card p-8 rounded-3xl shadow-sm bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 transition-colors duration-300 flex flex-col md:flex-row gap-10 items-start min-h-[500px]">
+    <div class="card p-5 sm:p-8 rounded-3xl shadow-sm bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 transition-colors duration-300 flex flex-col md:flex-row gap-10 items-start min-h-[500px]">
       
       <div class="flex flex-col items-center gap-6 md:w-1/4 border-r-0 md:border-r border-gray-100 dark:border-gray-700 pr-0 md:pr-8">
         

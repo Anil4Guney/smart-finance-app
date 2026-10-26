@@ -1,8 +1,8 @@
 <template>
-  <div class="p-6 max-w-[1400px] mx-auto">
-    <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-8">
+  <div class="lg:p-2 max-w-[1400px] mx-auto">
+    <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-6 sm:mb-8">
       <div>
-        <h1 class="text-3xl font-bold text-gray-900 dark:text-white transition-colors duration-300">Recurring Income & Expenses</h1>
+        <h1 class="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white transition-colors duration-300">Recurring Income & Expenses</h1>
         <p class="mt-2 text-gray-600 dark:text-gray-400 transition-colors duration-300">
           Salary, rent, bills, subscriptions and installments are added to your transactions automatically every month.
         </p>
@@ -11,30 +11,37 @@
     </div>
 
     <!-- Summary -->
-    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-      <div class="card p-6 rounded-3xl shadow-sm bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700">
-        <h3 class="text-gray-500 dark:text-gray-400 text-sm font-bold uppercase tracking-wider mb-2">Monthly Income</h3>
-        <p class="text-3xl font-extrabold text-emerald-600 dark:text-emerald-400">{{ formatCurrency(monthlyIncome) }}</p>
+    <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6 mb-6 sm:mb-8">
+      <div class="card p-4 sm:p-6 rounded-3xl shadow-sm bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700">
+        <h3 class="text-gray-500 dark:text-gray-400 text-xs sm:text-sm font-bold uppercase tracking-wider mb-2">Monthly Income</h3>
+        <p class="text-xl sm:text-3xl font-extrabold text-emerald-600 dark:text-emerald-400">{{ formatCurrency(monthlyIncome) }}</p>
       </div>
-      <div class="card p-6 rounded-3xl shadow-sm bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700">
-        <h3 class="text-gray-500 dark:text-gray-400 text-sm font-bold uppercase tracking-wider mb-2">Monthly Expenses</h3>
-        <p class="text-3xl font-extrabold text-gray-900 dark:text-white">{{ formatCurrency(monthlyExpense) }}</p>
+      <div class="card p-4 sm:p-6 rounded-3xl shadow-sm bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700">
+        <h3 class="text-gray-500 dark:text-gray-400 text-xs sm:text-sm font-bold uppercase tracking-wider mb-2">Monthly Expenses</h3>
+        <p class="text-xl sm:text-3xl font-extrabold text-gray-900 dark:text-white">{{ formatCurrency(monthlyExpense) }}</p>
       </div>
-      <div class="card p-6 rounded-3xl shadow-sm bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700">
-        <h3 class="text-gray-500 dark:text-gray-400 text-sm font-bold uppercase tracking-wider mb-2">Fixed Net / Month</h3>
-        <p class="text-3xl font-extrabold" :class="monthlyIncome - monthlyExpense >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'">
+      <div class="card p-4 sm:p-6 rounded-3xl shadow-sm bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700">
+        <h3 class="text-gray-500 dark:text-gray-400 text-xs sm:text-sm font-bold uppercase tracking-wider mb-2">Fixed Net / Month</h3>
+        <p class="text-xl sm:text-3xl font-extrabold" :class="monthlyIncome - monthlyExpense >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'">
           {{ formatCurrency(monthlyIncome - monthlyExpense) }}
         </p>
       </div>
-      <div class="card p-6 rounded-3xl shadow-sm bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700">
-        <h3 class="text-gray-500 dark:text-gray-400 text-sm font-bold uppercase tracking-wider mb-2">Installments Left</h3>
-        <p class="text-3xl font-extrabold text-rose-600 dark:text-rose-400">{{ formatCurrency(installmentDebt) }}</p>
+      <div class="card p-4 sm:p-6 rounded-3xl shadow-sm bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700">
+        <h3 class="text-gray-500 dark:text-gray-400 text-xs sm:text-sm font-bold uppercase tracking-wider mb-2">Installments Left</h3>
+        <p class="text-xl sm:text-3xl font-extrabold text-rose-600 dark:text-rose-400">{{ formatCurrency(installmentDebt) }}</p>
       </div>
     </div>
 
-    <div class="card p-6 rounded-3xl shadow-sm bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 transition-colors duration-300 min-h-[400px]">
+    <div class="card p-4 sm:p-6 rounded-3xl shadow-sm bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 transition-colors duration-300 min-h-[400px]">
       <div class="flex flex-wrap items-center justify-between gap-3 mb-6">
-        <SelectButton v-model="filter" :options="filterOptions" optionLabel="label" optionValue="value" :allowEmpty="false" />
+        <SelectButton
+          v-model="filter"
+          :options="filterOptions"
+          optionLabel="label"
+          optionValue="value"
+          :allowEmpty="false"
+          class="w-full sm:w-auto [&_.p-togglebutton]:grow [&_.p-togglebutton]:px-2 sm:[&_.p-togglebutton]:px-3 [&_.p-togglebutton-label]:text-xs sm:[&_.p-togglebutton-label]:text-sm"
+        />
         <span class="text-sm text-gray-500 dark:text-gray-400">{{ visibleItems.length }} item(s)</span>
       </div>
 
@@ -49,7 +56,7 @@
         <div
           v-for="sub in visibleItems"
           :key="sub.id"
-          class="flex flex-col p-6 bg-gray-50 dark:bg-gray-900/50 rounded-2xl border border-gray-200 dark:border-gray-700 hover:shadow-md transition-all relative group"
+          class="flex flex-col p-4 sm:p-6 bg-gray-50 dark:bg-gray-900/50 rounded-2xl border border-gray-200 dark:border-gray-700 hover:shadow-md transition-all relative group"
           :class="{ 'opacity-60': !sub.isActive }"
         >
           <div class="absolute top-4 right-4 sm:opacity-0 group-hover:opacity-100 transition-opacity flex gap-2">

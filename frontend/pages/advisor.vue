@@ -2,13 +2,13 @@
   <!-- Fills the layout's main area exactly; only the message list scrolls -->
   <div class="max-w-[1400px] mx-auto flex flex-col h-full min-h-0">
     
-    <div class="flex items-center gap-4 mb-6 shrink-0">
-      <div class="bg-purple-100 dark:bg-purple-900/40 text-purple-600 dark:text-purple-300 p-3 rounded-2xl transition-colors duration-300 shadow-sm">
-        <i class="pi pi-sparkles text-2xl"></i>
+    <div class="flex items-center gap-3 sm:gap-4 mb-4 sm:mb-6 shrink-0">
+      <div class="bg-purple-100 dark:bg-purple-900/40 text-purple-600 dark:text-purple-300 p-2.5 sm:p-3 rounded-2xl transition-colors duration-300 shadow-sm shrink-0">
+        <i class="pi pi-sparkles text-xl sm:text-2xl"></i>
       </div>
       <div>
         <h1 class="text-3xl font-bold text-gray-900 dark:text-white transition-colors duration-300">AI Financial Advisor</h1>
-        <p class="text-sm text-gray-600 dark:text-gray-400 mt-1 transition-colors duration-300">Your personal AI assistant for budgets and insights.</p>
+        <p class="text-xs sm:text-sm text-gray-600 dark:text-gray-400 mt-0.5 sm:mt-1 transition-colors duration-300">Your personal AI assistant for budgets and insights.</p>
       </div>
     </div>
 
@@ -26,17 +26,17 @@
           class="flex w-full"
           :class="msg.role === 'user' ? 'justify-end' : 'justify-start'"
         >
-          <div v-if="msg.role === 'ai'" class="flex max-w-[80%] md:max-w-[70%] items-end gap-2">
-            <div class="w-8 h-8 shrink-0 rounded-full bg-purple-100 dark:bg-purple-900/50 flex items-center justify-center border border-purple-200 dark:border-purple-800">
+          <div v-if="msg.role === 'ai'" class="flex max-w-[92%] md:max-w-[70%] items-end gap-2">
+            <div class="hidden sm:flex w-8 h-8 shrink-0 rounded-full bg-purple-100 dark:bg-purple-900/50 items-center justify-center border border-purple-200 dark:border-purple-800">
               <i class="pi pi-sparkles text-purple-600 dark:text-purple-400 text-xs"></i>
             </div>
-            <div class="p-4 bg-gray-100 dark:bg-gray-700/60 text-gray-800 dark:text-gray-200 rounded-2xl rounded-bl-none shadow-sm text-[0.95rem] leading-relaxed border border-gray-200 dark:border-gray-600 whitespace-pre-wrap">
+            <div class="p-3 sm:p-4 bg-gray-100 dark:bg-gray-700/60 text-gray-800 dark:text-gray-200 rounded-2xl rounded-bl-none shadow-sm text-sm sm:text-[0.95rem] leading-relaxed border border-gray-200 dark:border-gray-600 whitespace-pre-wrap break-words">
               {{ msg.content }}
             </div>
           </div>
 
-          <div v-else class="flex max-w-[80%] md:max-w-[70%] items-end gap-2 justify-end">
-            <div class="p-4 bg-purple-600 dark:bg-purple-500 text-white rounded-2xl rounded-br-none shadow-sm text-[0.95rem] leading-relaxed">
+          <div v-else class="flex max-w-[88%] md:max-w-[70%] items-end gap-2 justify-end">
+            <div class="p-3 sm:p-4 bg-purple-600 dark:bg-purple-500 text-white rounded-2xl rounded-br-none shadow-sm text-[0.95rem] leading-relaxed">
               {{ msg.content }}
             </div>
           </div>
@@ -55,13 +55,13 @@
         </div>
       </div>
 
-      <div class="p-4 bg-gray-50 dark:bg-gray-900/50 border-t border-gray-100 dark:border-gray-700 z-10 shrink-0">
+      <div class="p-3 sm:p-4 bg-gray-50 dark:bg-gray-900/50 border-t border-gray-100 dark:border-gray-700 z-10 shrink-0">
         <form @submit.prevent="sendMessage" class="flex items-center gap-3 max-w-4xl mx-auto relative">
           <input 
             v-model="userInput" 
             type="text" 
-            placeholder="Ask about your spending, budgets, or financial advice..." 
-            class="flex-1 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white rounded-full pl-6 pr-12 py-3.5 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all shadow-sm"
+            placeholder="Ask about your money..." 
+            class="flex-1 min-w-0 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white rounded-full pl-4 sm:pl-6 pr-14 py-3 sm:py-3.5 text-base focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all shadow-sm"
             :disabled="isTyping"
           />
           <button 
@@ -72,7 +72,7 @@
             <i class="pi pi-send text-sm -ml-0.5 mt-0.5"></i>
           </button>
         </form>
-        <p class="text-center text-xs text-gray-500 dark:text-gray-400 mt-3">
+        <p class="text-center text-[11px] sm:text-xs text-gray-500 dark:text-gray-400 mt-2 sm:mt-3">
           AI Advisor can make mistakes. Consider verifying important financial information.
         </p>
       </div>

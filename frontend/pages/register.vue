@@ -12,20 +12,20 @@
       </div>
     </div>
 
-    <div class="auth-form-wrapper flex-1 flex items-center justify-center p-6 sm:p-10">
+    <div class="auth-form-wrapper flex-1 flex items-center justify-center p-4 sm:p-10">
       <div class="auth-card w-full max-w-md">
         <div class="text-center mb-8 lg:hidden">
-          <div class="logo-placeholder inline-flex mb-4">
+          <div class="logo-placeholder logo-mobile inline-flex mb-4">
             <i class="pi pi-wallet text-4xl text-white/90" />
           </div>
-          <h1 class="text-xl font-bold text-surface-800 dark:text-surface-100">SmartFinance</h1>
+          <h1 class="text-xl font-bold text-gray-900 dark:text-white">SmartFinance</h1>
         </div>
         <h2 class="auth-heading">Create account</h2>
         <p class="auth-desc">Fill in your details to get started.</p>
 
         <form @submit.prevent="handleRegister" class="auth-form mt-8">
           
-          <div class="flex gap-4">
+          <div class="flex flex-col sm:flex-row gap-6 sm:gap-4">
             <div class="input-float-group flex-1">
               <InputText
                 id="firstName"
@@ -71,17 +71,27 @@
             <label for="email" class="input-float-label">Email</label>
           </div>
           
-          <div class="input-float-group mt-6" :class="{ 'filled': password }">
-            <Password
+          <div class="input-float-group mt-6">
+            <InputText
               id="password"
               v-model="password"
-              class="input-float w-full p-password-input"
-              :feedback="true"
-              toggleMask
+              :type="showPassword ? 'text' : 'password'"
+              class="input-float w-full pr-12"
+              :class="{ 'filled': password }"
+              autocomplete="new-password"
               required
             />
             <label for="password" class="input-float-label">Password</label>
+            <button
+              type="button"
+              class="password-toggle"
+              :aria-label="showPassword ? 'Hide password' : 'Show password'"
+              @click="showPassword = !showPassword"
+            >
+              <i :class="['pi', showPassword ? 'pi-eye-slash' : 'pi-eye']" />
+            </button>
           </div>
+            <p class="mt-2 text-xs text-gray-500 dark:text-gray-400">At least 8 characters. Avoid common or only-number passwords.</p>
           
           <div v-if="error" class="mt-4 text-red-600 text-sm font-medium">{{ error }}</div>
           
@@ -106,7 +116,6 @@
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import InputText from 'primevue/inputtext'
-import Password from 'primevue/password'
 import Button from 'primevue/button'
 import { useAuth } from '~/composables/useAuth'
 
@@ -123,6 +132,7 @@ const lastName = ref('')
 const username = ref('')
 const email = ref('')
 const password = ref('')
+const showPassword = ref(false)
 
 const error = ref('')
 const loading = ref(false)
@@ -193,16 +203,7 @@ const handleRegister = async () => {
   line-height: 1.6;
 }
 
-.auth-form-wrapper {
-  background: rgba(255, 255, 255, 0.97);
-}
-.dark .auth-form-wrapper {
-  background: rgba(15, 23, 42, 0.97);
-}
 
-.auth-card {
-  padding: 2.5rem;
-}
 .auth-heading {
   font-size: 1.75rem;
   font-weight: 700;
@@ -219,7 +220,8 @@ const handleRegister = async () => {
   position: relative;
 }
 .input-float {
-  border: 1px solid var(--p-input-border-color);
+  border: 1px solid #cbd5e1;
+  background: #f8fafc;
   border-radius: 10px;
   padding: 1rem 1rem 0.5rem;
   font-size: 1rem;
@@ -245,24 +247,6 @@ const handleRegister = async () => {
   top: 0.65rem;
   font-size: 0.75rem;
   color: #059669;
-}
-.input-float-group :deep(.p-password-input) {
-  border: none;
-  padding: 0;
-  background: transparent;
-}
-.input-float-group :deep(.p-password) {
-  border: 1px solid var(--p-input-border-color);
-  border-radius: 10px;
-  padding: 1rem 1rem 0.5rem;
-  transition: border-color 0.2s, box-shadow 0.2s;
-}
-.input-float-group :deep(.p-password:focus-within) {
-  border-color: #059669;
-  box-shadow: 0 0 0 3px rgba(5, 150, 105, 0.2);
-}
-.input-float-group :deep(.p-password .p-icon-field) {
-  width: 100%;
 }
 .input-float-group.filled .input-float-label {
   top: 0.65rem;
@@ -297,5 +281,69 @@ const handleRegister = async () => {
 }
 .auth-link:hover {
   text-decoration: underline;
+}
+.dark .input-float {
+  border-color: #334155;
+  background: #1e293b;
+}
+
+/* --- Small screens: gradient background with a white card --- */
+.auth-form-wrapper {
+  background: transparent;
+}
+.auth-card {
+  padding: 1.75rem 1.25rem;
+  background: #ffffff;
+  border-radius: 24px;
+  box-shadow: 0 24px 60px rgba(2, 6, 23, 0.35);
+}
+.dark .auth-card {
+  background: #0f172a;
+}
+.logo-mobile {
+  background: linear-gradient(135deg, #059669 0%, #0e7490 100%);
+  margin-left: auto;
+  margin-right: auto;
+  box-shadow: 0 10px 25px rgba(5, 150, 105, 0.35);
+}
+@media (min-width: 640px) {
+  .auth-card {
+    padding: 2.5rem;
+  }
+}
+/* Large screens: brand panel on the left, plain form on the right */
+@media (min-width: 1024px) {
+  .auth-form-wrapper {
+    background: rgba(255, 255, 255, 0.97);
+  }
+  .dark .auth-form-wrapper {
+    background: rgba(15, 23, 42, 0.97);
+  }
+  .auth-card,
+  .dark .auth-card {
+    background: transparent;
+    box-shadow: none;
+  }
+}
+
+/* Show/hide password button inside the field */
+.password-toggle {
+  position: absolute;
+  right: 0.6rem;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 2.25rem;
+  height: 2.25rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  color: var(--p-text-muted-color);
+}
+.password-toggle:hover {
+  background: rgba(100, 116, 139, 0.1);
+}
+.password-toggle:focus-visible {
+  outline: 2px solid #059669;
 }
 </style>

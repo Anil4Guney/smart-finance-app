@@ -1,14 +1,14 @@
 <template>
-  <div class="p-6 max-w-[1400px] mx-auto relative">
-    <div class="flex justify-between items-center mb-8">
-      <h1 class="text-3xl font-bold text-gray-900 dark:text-white transition-colors duration-300">
+  <div class="lg:p-2 max-w-[1400px] mx-auto relative">
+    <div class="flex flex-wrap justify-between items-center gap-3 mb-6 sm:mb-8">
+      <h1 class="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white transition-colors duration-300">
         Dashboard
       </h1>
       <Button label="Add Transaction" icon="pi pi-plus" class="shadow-sm" @click="$router.push('/transactions')" />
     </div>
 
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
-      <div class="relative overflow-hidden rounded-3xl p-6 shadow-lg bg-gradient-to-br from-gray-900 to-gray-800 text-white transform hover:-translate-y-1 transition-all duration-300">
+    <div class="grid grid-cols-2 md:grid-cols-3 gap-3 sm:gap-6 mb-8 sm:mb-10">
+      <div class="col-span-2 md:col-span-1 relative overflow-hidden rounded-3xl p-5 sm:p-6 shadow-lg bg-gradient-to-br from-gray-900 to-gray-800 text-white transform hover:-translate-y-1 transition-all duration-300">
         <div class="absolute top-0 right-0 -mt-4 -mr-4 w-24 h-24 bg-white/10 rounded-full blur-xl"></div>
         <div class="absolute bottom-0 left-0 -mb-4 -ml-4 w-20 h-20 bg-blue-500/20 rounded-full blur-lg"></div>
         <div class="relative z-10 flex flex-col h-full justify-between">
@@ -19,9 +19,9 @@
             </div>
             <i class="pi pi-wifi text-gray-400 rotate-90"></i>
           </div>
-          <div class="mt-8 mb-4">
+          <div class="mt-4 sm:mt-8 mb-2 sm:mb-4">
             <p class="text-sm text-gray-400 mb-1">Total Balance</p>
-            <p class="text-4xl font-extrabold tracking-tight">{{ formatCurrency(balance) }}</p>
+            <p class="text-3xl sm:text-4xl font-extrabold tracking-tight">{{ formatCurrency(balance) }}</p>
           </div>
           <div class="flex justify-between items-center text-sm font-medium text-gray-300">
             <span class="uppercase tracking-widest">{{ user?.first_name ? `${user.first_name} ${user.last_name || ''}` : 'Smart User' }}</span>
@@ -30,52 +30,52 @@
         </div>
       </div>
 
-      <div class="relative overflow-hidden rounded-3xl p-6 shadow-lg bg-gradient-to-br from-emerald-600 to-teal-800 text-white transform hover:-translate-y-1 transition-all duration-300">
+      <div class="relative overflow-hidden rounded-2xl sm:rounded-3xl p-4 sm:p-6 shadow-lg bg-gradient-to-br from-emerald-600 to-teal-800 text-white transform hover:-translate-y-1 transition-all duration-300">
         <div class="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full blur-2xl transform translate-x-10 -translate-y-10"></div>
         <div class="relative z-10 flex flex-col h-full justify-between">
           <div class="flex justify-between items-start">
             <div class="flex items-center gap-2">
               <i class="pi pi-arrow-down-left text-green-300 text-xl"></i>
-              <span class="font-medium text-emerald-100 tracking-wide">Total Income</span>
+              <span class="font-medium text-emerald-100 tracking-wide text-sm sm:text-base">Total Income</span>
             </div>
             <div class="w-8 h-5 rounded bg-emerald-400/30 border border-emerald-300/30"></div>
           </div>
-          <div class="mt-8 mb-4">
-            <p class="text-4xl font-extrabold tracking-tight">{{ formatCurrency(totalIncome) }}</p>
+          <div class="mt-4 sm:mt-8 mb-2 sm:mb-4">
+            <p class="text-xl sm:text-4xl font-extrabold tracking-tight truncate">{{ formatCurrency(totalIncome) }}</p>
           </div>
           <div class="flex justify-between items-center text-sm font-medium text-emerald-100">
             <span class="uppercase tracking-widest">Inflow</span>
-            <span class="font-mono text-emerald-200">Visa</span>
+            <span class="hidden sm:inline font-mono text-emerald-200">Visa</span>
           </div>
         </div>
       </div>
 
-      <div class="relative overflow-hidden rounded-3xl p-6 shadow-lg bg-gradient-to-br from-orange-500 to-red-600 text-white transform hover:-translate-y-1 transition-all duration-300">
+      <div class="relative overflow-hidden rounded-2xl sm:rounded-3xl p-4 sm:p-6 shadow-lg bg-gradient-to-br from-orange-500 to-red-600 text-white transform hover:-translate-y-1 transition-all duration-300">
         <div class="absolute bottom-0 right-0 w-40 h-40 bg-yellow-500/20 rounded-full blur-2xl transform translate-x-10 translate-y-10"></div>
         <div class="relative z-10 flex flex-col h-full justify-between">
           <div class="flex justify-between items-start">
             <div class="flex items-center gap-2">
               <i class="pi pi-arrow-up-right text-orange-200 text-xl"></i>
-              <span class="font-medium text-red-100 tracking-wide">Total Expense</span>
+              <span class="font-medium text-red-100 tracking-wide text-sm sm:text-base">Total Expense</span>
             </div>
             <div class="flex gap-1">
               <div class="w-4 h-4 rounded-full bg-red-400/50"></div>
               <div class="w-4 h-4 rounded-full bg-orange-400/50 -ml-2"></div>
             </div>
           </div>
-          <div class="mt-8 mb-4">
-            <p class="text-4xl font-extrabold tracking-tight">{{ formatCurrency(totalExpense) }}</p>
+          <div class="mt-4 sm:mt-8 mb-2 sm:mb-4">
+            <p class="text-xl sm:text-4xl font-extrabold tracking-tight truncate">{{ formatCurrency(totalExpense) }}</p>
           </div>
           <div class="flex justify-between items-center text-sm font-medium text-red-100">
             <span class="uppercase tracking-widest">Outflow</span>
-            <span class="font-mono text-red-200">Mastercard</span>
+            <span class="hidden sm:inline font-mono text-red-200">Mastercard</span>
           </div>
         </div>
       </div>
     </div>
 
     <!-- Month-end forecast -->
-    <div v-if="forecast" class="card p-6 md:p-8 rounded-3xl shadow-sm bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 transition-colors duration-300 mb-8">
+    <div v-if="forecast" class="card p-4 sm:p-6 md:p-8 rounded-3xl shadow-sm bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 transition-colors duration-300 mb-8">
       <div class="flex flex-wrap items-center justify-between gap-2 mb-6">
         <div class="flex items-center gap-3">
           <div class="p-2 rounded-lg bg-purple-50 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400">
@@ -95,7 +95,7 @@
         <div class="rounded-2xl p-6 flex flex-col justify-between"
           :class="forecast.projected_net >= 0 ? 'bg-emerald-50 dark:bg-emerald-900/20' : 'bg-red-50 dark:bg-red-900/20'">
           <p class="text-sm font-medium text-gray-600 dark:text-gray-300">Expected at the end of the month</p>
-          <p class="text-4xl font-extrabold tracking-tight my-3"
+          <p class="text-3xl sm:text-4xl font-extrabold tracking-tight my-3"
             :class="forecast.projected_net >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'">
             {{ forecast.projected_net >= 0 ? '+' : '' }}{{ formatCurrency(forecast.projected_net) }}
           </p>
@@ -131,7 +131,7 @@
       </div>
     </div>
 
-    <div class="card p-6 rounded-3xl shadow-sm bg-white dark:bg-gray-800 transition-colors duration-300 mb-8">
+    <div class="card p-4 sm:p-6 rounded-3xl shadow-sm bg-white dark:bg-gray-800 transition-colors duration-300 mb-8">
       <div class="flex items-center justify-between mb-6 border-b pb-3 border-gray-100 dark:border-gray-700">
         <h3 class="text-xl font-bold text-gray-900 dark:text-white transition-colors duration-300">
           6-Month Cash Flow Trend
@@ -147,7 +147,7 @@
       </div>
     </div>
 
-    <div v-if="budgetProgress.length > 0" class="card p-6 rounded-3xl shadow-sm bg-white dark:bg-gray-800 transition-colors duration-300 mb-8">
+    <div v-if="budgetProgress.length > 0" class="card p-4 sm:p-6 rounded-3xl shadow-sm bg-white dark:bg-gray-800 transition-colors duration-300 mb-8">
       <div class="flex items-center justify-between mb-6 border-b pb-3 border-gray-100 dark:border-gray-700">
         <h3 class="text-xl font-bold text-gray-900 dark:text-white transition-colors duration-300">
           Monthly Budget Limits
@@ -177,7 +177,7 @@
 
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
       <div class="lg:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-6">
-        <div class="card p-6 rounded-3xl shadow-sm bg-white dark:bg-gray-800 transition-colors duration-300">
+        <div class="card p-4 sm:p-6 rounded-3xl shadow-sm bg-white dark:bg-gray-800 transition-colors duration-300">
           <h3 class="text-xl font-bold mb-6 border-b pb-3 border-gray-100 dark:border-gray-700 text-gray-900 dark:text-white transition-colors duration-300">
             Income Breakdown
           </h3>
@@ -187,7 +187,7 @@
           <div v-else class="text-center text-gray-500 h-64 flex flex-col justify-center items-center"><i class="pi pi-chart-pie text-4xl mb-2 opacity-50"></i><p>No income data.</p></div>
         </div>
 
-        <div class="card p-6 rounded-3xl shadow-sm bg-white dark:bg-gray-800 transition-colors duration-300">
+        <div class="card p-4 sm:p-6 rounded-3xl shadow-sm bg-white dark:bg-gray-800 transition-colors duration-300">
           <h3 class="text-xl font-bold mb-6 border-b pb-3 border-gray-100 dark:border-gray-700 text-gray-900 dark:text-white transition-colors duration-300">
             Expense Breakdown
           </h3>
@@ -198,7 +198,7 @@
         </div>
       </div>
 
-      <div class="card p-6 rounded-3xl shadow-sm bg-white dark:bg-gray-800 transition-colors duration-300 flex flex-col h-full">
+      <div class="card p-4 sm:p-6 rounded-3xl shadow-sm bg-white dark:bg-gray-800 transition-colors duration-300 flex flex-col h-full">
         <div class="flex items-center justify-between mb-6 border-b pb-3 border-gray-100 dark:border-gray-700">
           <h3 class="text-xl font-bold text-gray-900 dark:text-white transition-colors duration-300">Upcoming</h3>
           <Button icon="pi pi-plus" rounded text severity="secondary" v-tooltip.top="'Add recurring item'" @click="$router.push('/subscriptions')" />
@@ -227,7 +227,7 @@
       </div>
     </div>
 
-    <div class="card p-6 rounded-3xl shadow-sm bg-white dark:bg-gray-800 transition-colors duration-300">
+    <div class="card p-4 sm:p-6 rounded-3xl shadow-sm bg-white dark:bg-gray-800 transition-colors duration-300">
       <h3 class="text-xl font-bold mb-6 border-b pb-3 border-gray-100 dark:border-gray-700 text-gray-900 dark:text-white transition-colors duration-300">
         Recent Transactions
       </h3>

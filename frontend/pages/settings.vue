@@ -1,13 +1,13 @@
 <template>
-  <div class="p-6 max-w-[1400px] mx-auto">
-    <div class="mb-8">
-      <h1 class="text-3xl font-bold text-gray-900 dark:text-white transition-colors duration-300">Settings</h1>
+  <div class="lg:p-2 max-w-[1400px] mx-auto">
+    <div class="mb-6 sm:mb-8">
+      <h1 class="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white transition-colors duration-300">Settings</h1>
       <p class="mt-2 text-gray-600 dark:text-gray-400">Manage your application preferences, security, and data.</p>
     </div>
 
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
       
-      <div class="card p-8 rounded-3xl shadow-sm bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 transition-colors duration-300">
+      <div class="card p-5 sm:p-8 rounded-3xl shadow-sm bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 transition-colors duration-300">
         <div class="flex items-center gap-3 mb-6 border-b pb-4 border-gray-100 dark:border-gray-700">
           <div class="p-2 bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-lg">
             <i class="pi pi-globe text-xl"></i>
@@ -33,7 +33,7 @@
         </div>
       </div>
 
-      <div class="card p-8 rounded-3xl shadow-sm bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 transition-colors duration-300">
+      <div class="card p-5 sm:p-8 rounded-3xl shadow-sm bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 transition-colors duration-300">
         <div class="flex items-center gap-3 mb-6 border-b pb-4 border-gray-100 dark:border-gray-700">
           <div class="p-2 bg-purple-50 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 rounded-lg">
             <i class="pi pi-palette text-xl"></i>
@@ -65,7 +65,7 @@
         </div>
       </div>
 
-      <div class="card p-8 rounded-3xl shadow-sm bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 transition-colors duration-300 lg:col-span-2">
+      <div class="card p-5 sm:p-8 rounded-3xl shadow-sm bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 transition-colors duration-300 lg:col-span-2">
         <div class="flex items-center justify-between mb-6 border-b pb-4 border-gray-100 dark:border-gray-700">
           <div class="flex items-center gap-3">
             <div class="p-2 bg-orange-50 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400 rounded-lg">
@@ -113,7 +113,7 @@
         </div>
       </div>
 
-      <div class="card p-8 rounded-3xl shadow-sm bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 transition-colors duration-300">
+      <div class="card p-5 sm:p-8 rounded-3xl shadow-sm bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 transition-colors duration-300">
         <div class="flex items-center gap-3 mb-6 border-b pb-4 border-gray-100 dark:border-gray-700">
           <div class="p-2 bg-green-50 dark:bg-green-900/30 text-green-600 dark:text-green-400 rounded-lg">
             <i class="pi pi-download text-xl"></i>
@@ -135,7 +135,7 @@
         </div>
       </div>
 
-      <div class="card p-8 rounded-3xl shadow-sm bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 transition-colors duration-300">
+      <div class="card p-5 sm:p-8 rounded-3xl shadow-sm bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 transition-colors duration-300">
         <div class="flex items-center gap-3 mb-6 border-b pb-4 border-gray-100 dark:border-gray-700">
           <div class="p-2 bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400 rounded-lg">
             <i class="pi pi-shield text-xl"></i>

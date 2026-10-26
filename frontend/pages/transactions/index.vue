@@ -1,22 +1,56 @@
 <template>
-  <div class="p-6 max-w-[1400px] mx-auto">
-    <div class="flex justify-between items-center mb-6">
+  <div class="lg:p-2 max-w-[1400px] mx-auto">
+    <div class="flex flex-wrap justify-between items-center gap-3 mb-6">
       <div>
-        <h1 class="text-3xl font-bold text-gray-900 dark:text-white transition-colors duration-300">
+        <h1 class="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white transition-colors duration-300">
           Transactions
         </h1>
-        <p class="mt-2 text-gray-600 dark:text-gray-400 transition-colors duration-300 text-lg">
+        <p class="mt-2 text-gray-600 dark:text-gray-400 transition-colors duration-300 sm:text-lg">
           Manage your income and expenses here.
         </p>
       </div>
-      <Button label="Add New" icon="pi pi-plus" @click="openAddModal" class="shadow-sm p-button-lg" />
+      <Button label="Add New" icon="pi pi-plus" @click="openAddModal" class="shadow-sm sm:p-button-lg" />
     </div>
 
     <div v-if="error" class="mt-4 text-red-600 dark:text-red-400 font-medium">
       Error loading data: {{ error }}
     </div>
 
-    <div class="mt-6 p-6 bg-white dark:bg-gray-800 rounded-3xl shadow-sm border border-gray-100 dark:border-gray-700 transition-colors duration-300 transactions-table-wrapper overflow-x-auto">
+    <!-- Phones and tablets: one card per transaction -->
+    <div class="lg:hidden grid grid-cols-1 md:grid-cols-2 gap-3">
+      <div v-if="pending && tableData.length === 0" class="md:col-span-2 text-center text-gray-500 py-10">Loading…</div>
+      <div v-else-if="tableData.length === 0" class="md:col-span-2 text-center text-gray-500 py-10 bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700">
+        No transactions yet.
+      </div>
+      <div
+        v-for="tx in tableData"
+        :key="tx.id"
+        class="flex items-center gap-3 p-4 bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm"
+      >
+        <div
+          class="w-10 h-10 shrink-0 rounded-full flex items-center justify-center"
+          :class="tx.transaction_type === 'INCOME' ? 'bg-emerald-100 text-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-400' : 'bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400'"
+        >
+          <i :class="['pi', tx.transaction_type === 'INCOME' ? 'pi-arrow-down-left' : 'pi-arrow-up-right']"></i>
+        </div>
+        <div class="min-w-0 flex-1">
+          <p class="font-semibold text-gray-900 dark:text-white truncate">{{ tx.title }}</p>
+          <p class="text-xs text-gray-500 dark:text-gray-400 truncate">{{ tx.category }} · {{ tx.date }}</p>
+          <p v-if="tx.description" class="text-xs text-gray-400 italic truncate">{{ tx.description }}</p>
+        </div>
+        <div class="text-right shrink-0">
+          <p class="font-bold" :class="tx.transaction_type === 'INCOME' ? 'text-emerald-600 dark:text-emerald-400' : 'text-gray-900 dark:text-white'">
+            {{ tx.transaction_type === 'INCOME' ? '+' : '−' }}{{ formatCurrency(tx.amount) }}
+          </p>
+          <div class="flex justify-end -mr-2">
+            <Button icon="pi pi-pencil" severity="info" text rounded size="small" aria-label="Edit" @click="openEditModal(tx)" />
+            <Button icon="pi pi-trash" severity="danger" text rounded size="small" aria-label="Delete" @click="confirmDelete(tx)" />
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="hidden lg:block mt-6 p-4 lg:p-6 bg-white dark:bg-gray-800 rounded-3xl shadow-sm border border-gray-100 dark:border-gray-700 transition-colors duration-300 transactions-table-wrapper overflow-x-auto">
       <DataTable
         :value="tableData"
         dataKey="id"

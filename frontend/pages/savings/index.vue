@@ -1,9 +1,9 @@
 <template>
-  <div class="p-6 max-w-[1400px] mx-auto">
-    <div class="flex justify-between items-center mb-8">
+  <div class="lg:p-2 max-w-[1400px] mx-auto">
+    <div class="flex flex-wrap justify-between items-center gap-3 mb-6 sm:mb-8">
       <div>
-        <h1 class="text-3xl font-bold text-gray-900 dark:text-white transition-colors duration-300">Savings Goals</h1>
-        <p class="mt-2 text-gray-600 dark:text-gray-400 transition-colors duration-300">Track your progress towards your financial dreams. 🎯</p>
+        <h1 class="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white transition-colors duration-300">Savings Goals</h1>
+        <p class="mt-2 text-sm sm:text-base text-gray-600 dark:text-gray-400 transition-colors duration-300">Track your progress towards your financial dreams. 🎯</p>
       </div>
       <Button label="Add Goal" icon="pi pi-plus" @click="openAddDialog" class="shadow-sm" />
     </div>
@@ -12,7 +12,7 @@
       <div 
         v-for="goal in goals" 
         :key="goal.id" 
-        class="card p-6 rounded-3xl shadow-sm bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 hover:shadow-md transition-all duration-300 group"
+        class="card p-4 sm:p-6 rounded-3xl shadow-sm bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 hover:shadow-md transition-all duration-300 group"
       >
         
         <div class="flex justify-between items-start mb-6">
