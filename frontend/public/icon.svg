@@ -1,40 +1,55 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
   <defs>
-    <!-- night sky -->
-    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0" stop-color="#0b1120"/>
-      <stop offset="1" stop-color="#172342"/>
+    <linearGradient id="sky" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#17223f"/>
+      <stop offset="1" stop-color="#080c16"/>
     </linearGradient>
-    <!-- warm light behind the coin -->
-    <radialGradient id="halo" cx="0.5" cy="0.46" r="0.5">
-      <stop offset="0" stop-color="#fbbf24" stop-opacity="0.32"/>
+    <radialGradient id="halo" cx="0.5" cy="0.32" r="0.55">
+      <stop offset="0" stop-color="#fbbf24" stop-opacity="0.22"/>
       <stop offset="1" stop-color="#fbbf24" stop-opacity="0"/>
     </radialGradient>
-    <!-- gold coin -->
     <linearGradient id="gold" x1="0.2" y1="0" x2="0.8" y2="1">
       <stop offset="0" stop-color="#fef3c7"/>
       <stop offset="0.5" stop-color="#fbbf24"/>
       <stop offset="1" stop-color="#b7791f"/>
     </linearGradient>
-    <!-- emerald horizon -->
-    <linearGradient id="hill" x1="0" y1="0" x2="0" y2="1">
+    <linearGradient id="body" x1="0" y1="0" x2="1" y2="1">
       <stop offset="0" stop-color="#6ee7b7"/>
-      <stop offset="0.35" stop-color="#10b981"/>
+      <stop offset="0.45" stop-color="#10b981"/>
+      <stop offset="1" stop-color="#047857"/>
+    </linearGradient>
+    <linearGradient id="back" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#047857"/>
       <stop offset="1" stop-color="#064e3b"/>
+    </linearGradient>
+    <linearGradient id="tab" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#0b3b33"/>
+      <stop offset="1" stop-color="#052e2b"/>
     </linearGradient>
   </defs>
 
   <rect width="512" height="512" fill="url(#sky)"/>
   <rect width="512" height="512" fill="url(#halo)"/>
 
-  <!-- the rising coin: a new month begins -->
-  <circle cx="256" cy="232" r="104" fill="url(#gold)"/>
-  <circle cx="256" cy="232" r="76" fill="none" stroke="#92600f" stroke-opacity="0.35" stroke-width="7"/>
-  <circle cx="256" cy="232" r="104" fill="none" stroke="#ffffff" stroke-opacity="0.35" stroke-width="3"/>
+  <g transform="translate(-16 -14)">
+    <!-- back flap of the wallet -->
+    <rect x="116" y="150" width="280" height="130" rx="38" fill="url(#back)"/>
 
-  <!-- faint outer horizon line for depth -->
-  <path d="M -10 392 C 120 218 392 218 522 392" fill="none" stroke="#34d399" stroke-opacity="0.3" stroke-width="4"/>
+    <!-- gold coin rising out of the wallet -->
+    <circle cx="292" cy="178" r="64" fill="url(#gold)"/>
+    <circle cx="292" cy="178" r="44" fill="none" stroke="#92600f" stroke-opacity="0.35" stroke-width="6"/>
+    <circle cx="292" cy="178" r="64" fill="none" stroke="#ffffff" stroke-opacity="0.4" stroke-width="3"/>
 
-  <!-- the horizon: emerald hill in front of the coin -->
-  <path d="M -10 420 C 120 250 392 250 522 420 L 522 522 L -10 522 Z" fill="url(#hill)"/>
+    <!-- front of the wallet -->
+    <rect x="96" y="214" width="320" height="206" rx="50" fill="url(#body)"/>
+    <!-- soft top highlight -->
+    <path d="M 146 216 H 366 A 50 50 0 0 1 414 252 H 98 A 50 50 0 0 1 146 216 Z" fill="#ffffff" fill-opacity="0.14"/>
+    <!-- stitching -->
+    <rect x="112" y="230" width="288" height="174" rx="38" fill="none" stroke="#ffffff" stroke-opacity="0.28" stroke-width="3.5" stroke-dasharray="3 11" stroke-linecap="round"/>
+
+    <!-- strap tab with a gold button -->
+    <rect x="322" y="282" width="126" height="84" rx="34" fill="url(#tab)"/>
+    <rect x="322" y="282" width="126" height="84" rx="34" fill="none" stroke="#6ee7b7" stroke-opacity="0.35" stroke-width="3"/>
+    <circle cx="372" cy="324" r="15" fill="url(#gold)"/>
+  </g>
 </svg>
