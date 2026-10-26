@@ -3,13 +3,13 @@
     <div class="flex flex-wrap justify-between items-center gap-3 mb-6">
       <div>
         <h1 class="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white transition-colors duration-300">
-          Transactions
+          İşlemler
         </h1>
         <p class="mt-2 text-gray-600 dark:text-gray-400 transition-colors duration-300 sm:text-lg">
-          Manage your income and expenses here.
+          Gelir ve giderlerini buradan yönet.
         </p>
       </div>
-      <Button label="Add New" icon="pi pi-plus" @click="openAddModal" class="shadow-sm sm:p-button-lg" />
+      <Button label="Yeni Ekle" icon="pi pi-plus" @click="openAddModal" class="shadow-sm sm:p-button-lg" />
     </div>
 
     <div v-if="error" class="mt-4 text-red-600 dark:text-red-400 font-medium">
@@ -18,9 +18,9 @@
 
     <!-- Phones and tablets: one card per transaction -->
     <div class="lg:hidden grid grid-cols-1 md:grid-cols-2 gap-3">
-      <div v-if="pending && tableData.length === 0" class="md:col-span-2 text-center text-gray-500 py-10">Loading…</div>
+      <div v-if="pending && tableData.length === 0" class="md:col-span-2 text-center text-gray-500 py-10">Yükleniyor…</div>
       <div v-else-if="tableData.length === 0" class="md:col-span-2 text-center text-gray-500 py-10 bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700">
-        No transactions yet.
+        Henüz işlem yok.
       </div>
       <div
         v-for="tx in tableData"
@@ -35,7 +35,7 @@
         </div>
         <div class="min-w-0 flex-1">
           <p class="font-semibold text-gray-900 dark:text-white truncate">{{ tx.title }}</p>
-          <p class="text-xs text-gray-500 dark:text-gray-400 truncate">{{ tx.category }} · {{ tx.date }}</p>
+          <p class="text-xs text-gray-500 dark:text-gray-400 truncate">{{ categoryLabel(tx.category) }} · {{ formatDateTR(tx.date) }}</p>
           <p v-if="tx.description" class="text-xs text-gray-400 italic truncate">{{ tx.description }}</p>
         </div>
         <div class="text-right shrink-0">
@@ -43,8 +43,8 @@
             {{ tx.transaction_type === 'INCOME' ? '+' : '−' }}{{ formatCurrency(tx.amount) }}
           </p>
           <div class="flex justify-end -mr-2">
-            <Button icon="pi pi-pencil" severity="info" text rounded size="small" aria-label="Edit" @click="openEditModal(tx)" />
-            <Button icon="pi pi-trash" severity="danger" text rounded size="small" aria-label="Delete" @click="confirmDelete(tx)" />
+            <Button icon="pi pi-pencil" severity="info" text rounded size="small" aria-label="Düzenle" @click="openEditModal(tx)" />
+            <Button icon="pi pi-trash" severity="danger" text rounded size="small" aria-label="Sil" @click="confirmDelete(tx)" />
           </div>
         </div>
       </div>
@@ -59,25 +59,25 @@
         scrollable
         class="p-datatable-lg p-datatable-hoverable text-lg" 
       >
-        <Column field="title" header="Title">
+        <Column field="title" header="Başlık">
           <template #body="{ data }">
             <span class="font-bold text-gray-900 dark:text-gray-100 text-lg">{{ data.title }}</span>
           </template>
         </Column>
         
-        <Column field="amount" header="Amount">
+        <Column field="amount" header="Tutar">
           <template #body="{ data }">
             <span class="font-extrabold text-xl text-gray-800 dark:text-white">{{ formatCurrency(data.amount) }}</span>
           </template>
         </Column>
         
-        <Column field="category" header="Category">
+        <Column field="category" header="Kategori">
            <template #body="{ data }">
-            <span class="text-gray-700 dark:text-gray-300 font-medium text-lg">{{ data.category }}</span>
+            <span class="text-gray-700 dark:text-gray-300 font-medium text-lg">{{ categoryLabel(data.category) }}</span>
           </template>
         </Column>
         
-        <Column field="description" header="Description">
+        <Column field="description" header="Açıklama">
           <template #body="{ data }">
             <span class="text-gray-500 dark:text-gray-400 italic">
               {{ data.description || '—' }}
@@ -85,23 +85,23 @@
           </template>
         </Column>
         
-        <Column field="transaction_type" header="Type">
+        <Column field="transaction_type" header="Tür">
           <template #body="{ data }">
             <Tag
-              :value="data.transaction_type"
+              :value="data.transaction_type === 'INCOME' ? 'GELİR' : 'GİDER'"
               :severity="data.transaction_type === 'INCOME' ? 'success' : 'danger'"
               class="font-bold tracking-wide text-sm px-3 py-1"
             />
           </template>
         </Column>
         
-        <Column field="date" header="Date">
+        <Column field="date" header="Tarih">
            <template #body="{ data }">
-            <span class="text-gray-700 dark:text-gray-300 font-medium">{{ data.date }}</span>
+            <span class="text-gray-700 dark:text-gray-300 font-medium">{{ formatDateTR(data.date) }}</span>
           </template>
         </Column>
         
-        <Column header="Actions" style="width: 120px">
+        <Column header="Seçenekler" style="width: 120px">
           <template #body="{ data }">
             <div class="flex items-center gap-1">
               <Button
@@ -110,7 +110,7 @@
                 text
                 rounded
                 size="large"
-                v-tooltip.top="'Edit'"
+                v-tooltip.top="'Düzenle'"
                 @click="openEditModal(data)"
               />
               <Button
@@ -119,7 +119,7 @@
                 text
                 rounded
                 size="large"
-                v-tooltip.top="'Delete'"
+                v-tooltip.top="'Sil'"
                 @click="confirmDelete(data)"
               />
             </div>
@@ -132,7 +132,7 @@
       v-model:visible="showDialog"
       modal
       :draggable="false"
-      :header="editingId ? ' Edit Transaction' : ' Add New Transaction'"
+      :header="editingId ? 'İşlemi Düzenle' : 'Yeni İşlem'"
       :style="{ width: '90vw', maxWidth: '500px' }"
       @hide="resetForm"
     >
@@ -140,25 +140,25 @@
         <div v-if="!editingId" class="flex items-center gap-3 mb-4 pb-4 border-b border-gray-200 dark:border-gray-700">
           <Button 
             type="button"
-            label="Scan Receipt " 
+            label="Fiş Tara" 
             icon="pi pi-camera"
             class="p-button-outlined p-button-success"
             :disabled="submitting || scanning"
             @click="showScanDialog = true"
           />
           <span v-if="scanning" class="text-sm font-medium text-green-600 dark:text-green-400 flex items-center gap-2">
-            <i class="pi pi-spin pi-spinner"></i> AI is reading your receipt...
+            <i class="pi pi-spin pi-spinner"></i> Yapay zekâ fişini okuyor...
           </span>
         </div>
 
         <div>
-          <label for="title" class="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">Title</label>
+          <label for="title" class="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">Başlık</label>
           <InputText id="title" v-model="form.title" class="w-full" required />
         </div>
         
         <div>
           <label for="amount" class="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">
-            Amount
+            Tutar
           </label>
           <div class="flex gap-2">
             <Dropdown
@@ -166,7 +166,7 @@
               :options="currencyOptions"
               optionLabel="short"
               optionValue="value"
-              aria-label="Currency"
+              aria-label="Para birimi"
               class="w-32 shrink-0"
             />
             <InputNumber
@@ -185,12 +185,12 @@
             v-if="form.displayAmount && form.currency !== currentCurrency"
             class="text-xs text-gray-500 dark:text-gray-400 mt-1"
           >
-            ≈ {{ formatCurrency(toUSD(form.displayAmount, form.currency)) }} at today's rate
+            ≈ {{ formatCurrency(toUSD(form.displayAmount, form.currency)) }} bugünkü kurla
           </p>
         </div>
 
         <div>
-          <label for="type" class="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">Type</label>
+          <label for="type" class="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">Tür</label>
           <SelectButton
             id="type"
             v-model="form.transaction_type"
@@ -202,31 +202,33 @@
         </div>
         
         <div>
-          <label for="category" class="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">Category</label>
+          <label for="category" class="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">Kategori</label>
           <Dropdown
             id="category"
             v-model="form.category"
-            :options="categoryOptions"
+            :options="categoryItems"
+            optionLabel="label"
+            optionValue="value"
             class="w-full"
-            placeholder="Select category"
+            placeholder="Kategori seç"
             required
           />
           <InputText
             v-if="form.category === 'Other'"
             v-model="form.customCategoryName"
             class="w-full mt-3"
-            placeholder="Custom Category Name"
+            placeholder="Kategori adı yaz"
             :required="form.category === 'Other'"
           />
         </div>
         
         <div>
-          <label for="date" class="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">Date</label>
-          <Calendar id="date" v-model="form.date" class="w-full" dateFormat="yy-mm-dd" required />
+          <label for="date" class="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">Tarih</label>
+          <Calendar id="date" v-model="form.date" class="w-full" dateFormat="dd.mm.yy" required />
         </div>
         
         <div>
-          <label for="description" class="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">Description (optional)</label>
+          <label for="description" class="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">Açıklama (isteğe bağlı)</label>
           <Textarea id="description" v-model="form.description" class="w-full" rows="3" />
         </div>
         
@@ -235,11 +237,11 @@
         <div class="flex gap-2 justify-end mt-6">
           <Button
             type="button"
-            label="Cancel"
+            label="Vazgeç"
             severity="secondary"
             @click="showDialog = false"
           />
-          <Button type="submit" :label="editingId ? 'Update' : 'Save'" :loading="submitting" />
+          <Button type="submit" :label="editingId ? 'Güncelle' : 'Kaydet'" :loading="submitting" />
         </div>
       </form>
     </Dialog>
@@ -248,20 +250,20 @@
       v-model:visible="showScanDialog" 
       modal 
       :draggable="false"
-      header="Upload Receipt" 
+      header="Fiş Yükle" 
       :style="{ width: '90vw', maxWidth: '350px' }"
     >
       <div class="flex flex-col gap-4 py-4">
-        <p class="text-gray-600 dark:text-gray-400 text-center mb-2">How would you like to upload your receipt?</p>
+        <p class="text-gray-600 dark:text-gray-400 text-center mb-2">Fişi nasıl yüklemek istersin?</p>
         
         <Button 
-          label="Take Photo 📸" 
+          label="Fotoğraf Çek 📸" 
           class="p-button-lg p-button-info w-full justify-center" 
           @click="triggerCamera"
         />
         
         <Button 
-          label="Choose File 📁" 
+          label="Dosya Seç 📁" 
           class="p-button-lg p-button-secondary w-full justify-center" 
           @click="triggerFile"
         />
@@ -287,7 +289,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import DataTable from 'primevue/datatable'
 import Column from 'primevue/column'
 import Button from 'primevue/button'
@@ -327,11 +329,12 @@ const form = ref({
 })
 
 const typeOptions = [
-  { label: 'Income', value: 'INCOME' },
-  { label: 'Expense', value: 'EXPENSE' },
+  { label: 'Gelir', value: 'INCOME' },
+  { label: 'Gider', value: 'EXPENSE' },
 ]
 
-const categoryOptions = ['Food', 'Rent', 'Salary', 'Freelance', 'Entertainment', 'Transport', 'Other']
+const categoryOptions = CATEGORY_KEYS
+const categoryItems = categoryChoices(categoryOptions)
 
 const submitError = ref('')
 const submitting = ref(false)
@@ -448,7 +451,7 @@ async function onReceiptUpload(event: { files: File[] }) {
       form.value.date = new Date(y, m - 1, d)
     }
   } catch (err: any) {
-    submitError.value = err.data?.detail || 'Failed to analyze receipt. Please try again.'
+    submitError.value = err.data?.detail || 'Fiş okunamadı. Lütfen tekrar dene.'
   } finally {
     scanning.value = false
   }
@@ -457,11 +460,11 @@ async function onReceiptUpload(event: { files: File[] }) {
 const handleSubmit = async () => {
   const categoryToSend = getCategoryToSend()
   if (!form.value.date || form.value.displayAmount === null || !form.value.category) {
-    submitError.value = 'Please fill all required fields'
+    submitError.value = 'Lütfen zorunlu alanları doldur'
     return
   }
   if (form.value.category === 'Other' && !form.value.customCategoryName?.trim()) {
-    submitError.value = 'Please enter a custom category name'
+    submitError.value = 'Lütfen kategori adını yaz'
     return
   }
 
@@ -504,7 +507,7 @@ const handleSubmit = async () => {
     resetForm()
     await refresh()
   } catch (err: any) {
-    submitError.value = err.data?.detail || 'Failed to save transaction'
+    submitError.value = err.data?.detail || 'İşlem kaydedilemedi'
   } finally {
     submitting.value = false
   }
@@ -512,11 +515,11 @@ const handleSubmit = async () => {
 
 const confirmDelete = (row: { id: number; title?: string }) => {
   confirm.require({
-    message: `Are you sure you want to delete "${row.title ?? 'this transaction'}"?`,
-    header: 'Delete Transaction',
+    message: `"${row.title ?? 'Bu işlem'}" silinsin mi? Bu işlem geri alınamaz.`,
+    header: 'İşlemi Sil',
     icon: 'pi pi-exclamation-triangle',
-    rejectLabel: 'Cancel',
-    acceptLabel: 'Delete',
+    rejectLabel: 'Vazgeç',
+    acceptLabel: 'Sil',
     acceptClass: 'p-button-danger',
     accept: async () => {
       try {
@@ -531,6 +534,14 @@ const confirmDelete = (row: { id: number; title?: string }) => {
     },
   })
 }
+const route = useRoute()
+const router = useRouter()
+onMounted(() => {
+  if (route.query.yeni) {
+    openAddModal()
+    router.replace({ query: {} })
+  }
+})
 </script>
 
 <style scoped>

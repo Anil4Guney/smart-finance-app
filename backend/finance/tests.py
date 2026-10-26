@@ -316,12 +316,46 @@ class ForecastTests(TestCase):
         self.assertEqual(APIClient().get('/api/forecast/').status_code, 401)
 
 
+class AiChatCurrencyTests(ApiTestCase):
+    def test_prompt_uses_users_currency(self):
+        from unittest import mock
+
+        Transaction.objects.create(user=self.user, title='Market', amount=Decimal('10'), transaction_type='EXPENSE',
+                                   category='Food', date=date.today())
+        captured = {}
+
+        def fake_generate(self_model, prompt, **kwargs):
+            captured['prompt'] = prompt
+            return mock.Mock(text='tamam')
+
+        with mock.patch('google.generativeai.GenerativeModel.generate_content', fake_generate), \
+             self.settings(GEMINI_API_KEY='test-key'):
+            res = self.client.post('/api/chat/', {'prompt': 'x', 'currency': 'TRY', 'rate': 40}, format='json')
+        self.assertEqual(res.status_code, 200)
+        self.assertIn('400.00 TRY', captured['prompt'])  # 10 USD x 40
+        self.assertNotIn('$', captured['prompt'].split('Kullanıcının Sorusu')[0])
+
+    def test_bad_currency_or_rate_falls_back_to_usd(self):
+        from unittest import mock
+
+        captured = {}
+
+        def fake_generate(self_model, prompt, **kwargs):
+            captured['prompt'] = prompt
+            return mock.Mock(text='tamam')
+
+        with mock.patch('google.generativeai.GenerativeModel.generate_content', fake_generate), \
+             self.settings(GEMINI_API_KEY='test-key'):
+            self.client.post('/api/chat/', {'prompt': 'x', 'currency': 'XXX', 'rate': 'abc'}, format='json')
+        self.assertIn('USD cinsindendir', captured['prompt'])
+
+
 class AiErrorMessageTests(TestCase):
     def test_known_gemini_errors_get_clear_messages(self):
         from google.api_core import exceptions as google_errors
         from .services import describe_ai_error
 
-        self.assertIn('usage limit', describe_ai_error(google_errors.ResourceExhausted('quota'))[1])
+        self.assertIn('kullanım sınırı', describe_ai_error(google_errors.ResourceExhausted('quota'))[1])
         self.assertIn('GEMINI_API_KEY', describe_ai_error(google_errors.PermissionDenied('API key expired'))[1])
         self.assertIn('GEMINI_MODEL', describe_ai_error(google_errors.NotFound('model gone'))[1])
         self.assertEqual(describe_ai_error(RuntimeError('boom'), fallback='x'), (502, 'x'))

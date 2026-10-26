@@ -28,6 +28,9 @@ from .forecast import monthly_forecast
 logger = logging.getLogger(__name__)
 
 
+ALLOWED_CHAT_CURRENCIES = {'USD', 'EUR', 'TRY', 'GBP', 'PLN'}
+
+
 class AIChatThrottle(UserRateThrottle):
     scope = 'ai_chat'
 
@@ -81,7 +84,7 @@ class CategoryBudgetViewSet(viewsets.ModelViewSet):
         """
         limits = request.data.get('limits')
         if not isinstance(limits, dict):
-            return Response({'detail': '"limits" must be an object of {category: amount}.'}, status=400)
+            return Response({'detail': 'Geçersiz istek.'}, status=400)
 
         cleaned = {}
         for category, raw in limits.items():
@@ -94,9 +97,9 @@ class CategoryBudgetViewSet(viewsets.ModelViewSet):
             try:
                 amount = Decimal(str(raw)).quantize(Decimal('0.01'))
             except (InvalidOperation, ValueError):
-                return Response({'detail': f'Invalid amount for {category}.'}, status=400)
+                return Response({'detail': f'{category} için geçersiz tutar.'}, status=400)
             if amount < 0 or amount >= Decimal('10000000000'):
-                return Response({'detail': f'Amount out of range for {category}.'}, status=400)
+                return Response({'detail': f'{category} için tutar sınırın dışında.'}, status=400)
             cleaned[category] = amount if amount > 0 else None
 
         with db_transaction.atomic():
@@ -143,18 +146,18 @@ def scan_receipt(request: Request) -> Response:
     image = request.FILES.get("image") or request.FILES.get("file")
     if not image:
         return Response(
-            {"detail": "No image file provided. Send a multipart field named 'image' or 'file'."},
+            {"detail": "Fiş görseli gönderilmedi."},
             status=400,
         )
     if image.size > settings.MAX_RECEIPT_UPLOAD_BYTES:
         max_mb = settings.MAX_RECEIPT_UPLOAD_BYTES // (1024 * 1024)
-        return Response({"detail": f"Image is too large (max {max_mb} MB)."}, status=400)
+        return Response({"detail": f"Görsel çok büyük (en fazla {max_mb} MB)."}, status=400)
     try:
         data = analyze_receipt(image)
         return Response(data)
     except Exception as exc:
         logger.exception("Receipt analysis failed")
-        status_code, message = describe_ai_error(exc, fallback="Receipt analysis failed. Please try another photo.")
+        status_code, message = describe_ai_error(exc, fallback="Fiş okunamadı. Başka bir fotoğraf dene.")
         return Response({"detail": message}, status=status_code)
 
 
@@ -169,10 +172,24 @@ class AIChatView(APIView):
         user_message = request.data.get('prompt')
         
         if not user_message or not str(user_message).strip():
-            return Response({"error": "Prompt is required"}, status=400)
+            return Response({"error": "Lütfen bir soru yaz."}, status=400)
         user_message = str(user_message)[:2000]
 
         user = request.user
+
+        # Amounts are stored in USD; the assistant talks in the currency the user sees in the app
+        currency = str(request.data.get('currency') or 'USD').upper()
+        if currency not in ALLOWED_CHAT_CURRENCIES:
+            currency = 'USD'
+        try:
+            rate = float(request.data.get('rate') or 1)
+        except (TypeError, ValueError):
+            rate = 1.0
+        if not 0 < rate < 1_000_000 or currency == 'USD':
+            rate = 1.0
+
+        def money(value):
+            return f"{float(value) * rate:,.2f} {currency}"
         
         # Kullanıcının tüm finansal bağlamını (Context) veritabanından çekiyoruz
         transactions = Transaction.objects.filter(user=user)
@@ -188,14 +205,14 @@ class AIChatView(APIView):
             return "+" if tx_type == "INCOME" else "-"
 
         tx_details = "; ".join(
-            f"{t.date:%d.%m.%Y} {t.title} ({t.category}): {sign(t.transaction_type)}${t.amount}"
+            f"{t.date:%d.%m.%Y} {t.title} ({t.category}): {sign(t.transaction_type)}{money(t.amount)}"
             for t in transactions[:15]
         )
-        budget_details = ", ".join([f"{b.category}: ${b.limit_amount}" for b in budgets])
+        budget_details = ", ".join([f"{b.category}: {money(b.limit_amount)}" for b in budgets])
 
         def describe(s):
             extra = f", {s.remaining_installments} taksit kaldı" if s.total_installments else ""
-            return (f"{s.name} ({s.get_kind_display()}): {sign(s.transaction_type)}${s.amount} her ay, "
+            return (f"{s.name} ({s.get_kind_display()}): {sign(s.transaction_type)}{money(s.amount)} her ay, "
                     f"sonraki tarih {s.due_date:%d.%m.%Y}{extra}")
         sub_details = "; ".join(describe(s) for s in subscriptions)
 
@@ -204,15 +221,15 @@ class AIChatView(APIView):
         Sen 'SmartFinance' uygulaması için çalışan uzman, samimi ve zeki bir finansal yapay zeka asistanısın.
         Kullanıcının adı: {user.first_name or user.username}.
 
-        Bugünün tarihi: {forecast['today']}. Tüm tutarlar USD cinsindendir.
+        Bugünün tarihi: {forecast['today']}. Tüm tutarlar {currency} cinsindendir; cevabında da {currency} kullan.
 
         Kullanıcının Güncel Finansal Durumu:
-        - Bu ay şimdiye kadar: gelir ${forecast['income_so_far']}, gider ${forecast['expense_so_far']}
-        - Tüm zamanların toplamı: gelir ${total_income}, gider ${total_expense}
+        - Bu ay şimdiye kadar: gelir {money(forecast['income_so_far'])}, gider {money(forecast['expense_so_far'])}
+        - Tüm zamanların toplamı: gelir {money(total_income)}, gider {money(total_expense)}
         - Son İşlemleri (tarihli): {tx_details if tx_details else 'Henüz işlem yok'}
         - Belirlediği Bütçe Limitleri: {budget_details if budget_details else 'Henüz limit yok'}
         - Her Ay Tekrarlayan Gelir/Giderleri: {sub_details if sub_details else 'Tanımlı değil'}
-        - Bu Ayın Sonu Tahmini (sadece bu ayın tarihlerini kapsar): tahmini gelir ${forecast['projected_income']}, tahmini gider ${forecast['projected_expense']}, ay sonu net ${forecast['projected_net']}, ay sonuna {forecast['days_left']} gün var, günlük güvenli harcama ${forecast['safe_daily_spend']}
+        - Bu Ayın Sonu Tahmini (sadece bu ayın tarihlerini kapsar): tahmini gelir {money(forecast['projected_income'])}, tahmini gider {money(forecast['projected_expense'])}, ay sonu net {money(forecast['projected_net'])}, ay sonuna {forecast['days_left']} gün var, günlük güvenli harcama {money(forecast['safe_daily_spend'])}
 
         Kullanıcı sana aşağıdaki soruyu sordu. 
         Soru kendi harcamaları, bütçeleri veya abonelikleriyle ilgiliyse yukarıdaki verileri kullanarak net ve doğru cevap ver.
@@ -228,7 +245,7 @@ class AIChatView(APIView):
         try:
             api_key = settings.GEMINI_API_KEY
             if not api_key:
-                return Response({"error": "AI service is not configured."}, status=503)
+                return Response({"error": "Yapay zekâ servisi yapılandırılmamış."}, status=503)
 
             genai.configure(api_key=api_key)
             model = genai.GenerativeModel(settings.GEMINI_CHAT_MODEL)

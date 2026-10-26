@@ -1,0 +1,73 @@
+/* SmartFinance design tokens and global polish */
+
+:root {
+  --sf-accent: #10b981;
+  --sf-radius: 1.5rem;
+}
+
+html {
+  font-family: 'Inter Variable', Inter, system-ui, -apple-system, 'Segoe UI', sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  font-feature-settings: 'cv11', 'ss01';
+  color-scheme: light;
+}
+html.dark {
+  color-scheme: dark;
+}
+
+/* PrimeVue components follow the page font */
+.p-component,
+.p-inputtext,
+.p-button {
+  font-family: inherit;
+}
+
+/* Numbers line up in columns and cards */
+.tabular {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Cards: soft depth in light mode, hairline border in dark mode */
+.card {
+  box-shadow: 0 1px 2px rgba(15, 22, 38, 0.04), 0 8px 24px rgba(15, 22, 38, 0.04);
+}
+.dark .card {
+  box-shadow: none;
+  border: 1px solid rgba(148, 163, 184, 0.12);
+}
+
+/* Main scroll area: dvh keeps it exact on phones with a moving address bar */
+main.app-main {
+  height: calc(100vh - 4rem);
+  height: calc(100dvh - 4rem);
+}
+
+/* Thin, quiet scrollbars */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(148, 163, 184, 0.35) transparent;
+}
+
+/* Bottom navigation (phones/tablets) */
+.bottom-nav {
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+/* Buttons: confident, not shouty */
+.p-button {
+  font-weight: 600;
+  letter-spacing: -0.005em;
+}
+
+/* Page enter */
+@keyframes sf-fade-up {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: none; }
+}
+.page-enter-active {
+  animation: sf-fade-up 0.25s ease both;
+}
+@media (prefers-reduced-motion: reduce) {
+  .page-enter-active { animation: none; }
+}

@@ -7,8 +7,8 @@
         <i class="pi pi-sparkles text-xl sm:text-2xl"></i>
       </div>
       <div>
-        <h1 class="text-3xl font-bold text-gray-900 dark:text-white transition-colors duration-300">AI Financial Advisor</h1>
-        <p class="text-xs sm:text-sm text-gray-600 dark:text-gray-400 mt-0.5 sm:mt-1 transition-colors duration-300">Your personal AI assistant for budgets and insights.</p>
+        <h1 class="text-xl sm:text-3xl font-bold text-gray-900 dark:text-white transition-colors duration-300">Yapay Zekâ Asistanı</h1>
+        <p class="text-xs sm:text-sm text-gray-600 dark:text-gray-400 mt-0.5 sm:mt-1 transition-colors duration-300">Bütçen ve harcamaların hakkında soru sor.</p>
       </div>
     </div>
 
@@ -42,6 +42,18 @@
           </div>
         </div>
 
+        <div v-if="messages.length === 1 && !isTyping" class="flex flex-wrap gap-2 sm:pl-10">
+          <button
+            v-for="q in suggestions"
+            :key="q"
+            type="button"
+            class="px-3.5 py-2 rounded-full text-sm font-medium border border-emerald-200 dark:border-emerald-500/30 text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-500/10 hover:bg-emerald-100 dark:hover:bg-emerald-500/20 transition-colors"
+            @click="ask(q)"
+          >
+            {{ q }}
+          </button>
+        </div>
+
         <div v-if="isTyping" class="flex max-w-[80%] items-end gap-2">
           <div class="w-8 h-8 shrink-0 rounded-full bg-purple-100 dark:bg-purple-900/50 flex items-center justify-center border border-purple-200 dark:border-purple-800">
             <i class="pi pi-sparkles text-purple-600 dark:text-purple-400 text-xs"></i>
@@ -50,7 +62,7 @@
             <span class="w-2 h-2 bg-gray-400 dark:bg-gray-500 rounded-full animate-bounce" style="animation-delay: 0ms"></span>
             <span class="w-2 h-2 bg-gray-400 dark:bg-gray-500 rounded-full animate-bounce" style="animation-delay: 150ms"></span>
             <span class="w-2 h-2 bg-gray-400 dark:bg-gray-500 rounded-full animate-bounce" style="animation-delay: 300ms"></span>
-            <span v-if="isSlow" class="ml-2 text-xs text-gray-500 dark:text-gray-400">Still thinking… the AI service is slow right now.</span>
+            <span v-if="isSlow" class="ml-2 text-xs text-gray-500 dark:text-gray-400">Düşünüyor… servis şu an yavaş.</span>
           </div>
         </div>
       </div>
@@ -60,7 +72,7 @@
           <input 
             v-model="userInput" 
             type="text" 
-            placeholder="Ask about your money..." 
+            placeholder="Paran hakkında bir şey sor..." 
             class="flex-1 min-w-0 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white rounded-full pl-4 sm:pl-6 pr-14 py-3 sm:py-3.5 text-base focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all shadow-sm"
             :disabled="isTyping"
           />
@@ -73,7 +85,7 @@
           </button>
         </form>
         <p class="text-center text-[11px] sm:text-xs text-gray-500 dark:text-gray-400 mt-2 sm:mt-3">
-          AI Advisor can make mistakes. Consider verifying important financial information.
+          Asistan hata yapabilir. Önemli kararlar için bilgileri kontrol et.
         </p>
       </div>
 
@@ -89,11 +101,12 @@ definePageMeta({ layout: 'default' })
 
 const { user, token } = useAuth()
 const { API_BASE } = useApiBase()
+const { currentCurrency, getRate } = useCurrency()
 
 // The profile may load after the page; keep the greeting's name up to date
 const greeting = () => {
-  const name = user.value?.first_name || user.value?.username || 'there'
-  return `Hi ${name}! 👋 I'm your SmartFinance AI Assistant.\n\nI can look at your budgets, transactions and recurring payments, or answer general money questions. What would you like to know today?`
+  const name = user.value?.first_name || user.value?.username || ''
+  return `Merhaba${name ? ' ' + name : ''}! 👋 Ben SmartFinance yapay zekâ asistanınım.\n\nBütçene, işlemlerine ve tekrarlayan ödemelerine bakabilir, genel para sorularını da cevaplayabilirim. Ne öğrenmek istersin?`
 }
 
 // Sohbet Geçmişi State'i
@@ -101,6 +114,11 @@ const messages = ref([{ role: 'ai', content: greeting() }])
 watch(user, () => { messages.value[0].content = greeting() })
 
 const userInput = ref('')
+const suggestions = [
+  'Ay sonunda ne kadar param kalır?',
+  'Bu ay en çok nereye harcadım?',
+  'Bütçemi nasıl iyileştirebilirim?',
+]
 const isTyping = ref(false)
 const isSlow = ref(false) // shows a hint when the AI takes long
 let slowTimer: ReturnType<typeof setTimeout> | undefined
@@ -137,13 +155,13 @@ const sendMessage = async () => {
     const response = await $fetch<{ reply: string }>(`${API_BASE}/chat/`, {
       method: 'POST',
       headers: { Authorization: `Bearer ${token.value}` },
-      body: { prompt: query },
+      body: { prompt: query, currency: currentCurrency.value, rate: getRate() },
     })
     messages.value.push({ role: 'ai', content: response.reply })
   } catch (error: any) {
     const status = error?.response?.status
-    let reply = error?.data?.error || 'The AI assistant is unavailable right now. Please try again later.'
-    if (status === 429) reply = "You've reached the hourly question limit. Please try again a bit later. ⏳"
+    let reply = error?.data?.error || 'Asistan şu an kullanılamıyor. Lütfen biraz sonra tekrar dene.'
+    if (status === 429) reply = 'Saatlik soru sınırına ulaştın. Biraz sonra tekrar dene. ⏳'
     messages.value.push({ role: 'ai', content: reply })
   } finally {
     clearTimeout(slowTimer)
@@ -151,6 +169,11 @@ const sendMessage = async () => {
     isSlow.value = false
     scrollToBottom()
   }
+}
+
+const ask = (question: string) => {
+  userInput.value = question
+  sendMessage()
 }
 
 onMounted(() => {

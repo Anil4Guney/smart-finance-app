@@ -2,10 +2,10 @@
   <div class="lg:p-2 max-w-[1400px] mx-auto">
     <div class="flex flex-wrap justify-between items-center gap-3 mb-6 sm:mb-8">
       <div>
-        <h1 class="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white transition-colors duration-300">Savings Goals</h1>
-        <p class="mt-2 text-sm sm:text-base text-gray-600 dark:text-gray-400 transition-colors duration-300">Track your progress towards your financial dreams. 🎯</p>
+        <h1 class="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white transition-colors duration-300">Birikim Hedefleri</h1>
+        <p class="mt-2 text-sm sm:text-base text-gray-600 dark:text-gray-400 transition-colors duration-300">Hedeflerine ne kadar yaklaştığını takip et. 🎯</p>
       </div>
-      <Button label="Add Goal" icon="pi pi-plus" @click="openAddDialog" class="shadow-sm" />
+      <Button label="Hedef Ekle" icon="pi pi-plus" @click="openAddDialog" class="shadow-sm" />
     </div>
 
     <div v-if="goals.length > 0" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -22,13 +22,13 @@
             </div>
             <div>
               <h3 class="font-bold text-xl text-gray-900 dark:text-white transition-colors duration-300">{{ goal.title }}</h3>
-              <p class="text-sm font-medium text-gray-500 dark:text-gray-400 transition-colors duration-300">Target: {{ formatCurrency(goal.target_amount) }}</p>
+              <p class="text-sm font-medium text-gray-500 dark:text-gray-400 transition-colors duration-300">Hedef: {{ formatCurrency(goal.target_amount) }}</p>
             </div>
           </div>
           
           <div class="flex items-center gap-1 opacity-80 group-hover:opacity-100 transition-opacity">
-            <Button icon="pi pi-pencil" text rounded severity="info" size="small" v-tooltip.top="'Edit Goal'" @click="openEditDialog(goal)" />
-            <Button icon="pi pi-trash" text rounded severity="danger" size="small" v-tooltip.top="'Delete Goal'" @click="deleteGoal(goal.id)" />
+            <Button icon="pi pi-pencil" text rounded severity="info" size="small" v-tooltip.top="'Hedefi düzenle'" @click="openEditDialog(goal)" />
+            <Button icon="pi pi-trash" text rounded severity="danger" size="small" v-tooltip.top="'Hedefi sil'" @click="deleteGoal(goal.id)" />
           </div>
         </div>
 
@@ -41,40 +41,40 @@
         </div>
 
         <div class="mt-8">
-          <Button label="Add Funds" icon="pi pi-wallet" class="w-full p-button-outlined p-button-secondary font-bold" @click="openAddFundsDialog(goal)" />
+          <Button label="Para Ekle" icon="pi pi-wallet" class="w-full p-button-outlined p-button-secondary font-bold" @click="openAddFundsDialog(goal)" />
         </div>
       </div>
     </div>
 
     <div v-else class="text-center p-16 bg-white dark:bg-gray-800 rounded-3xl shadow-sm border border-gray-100 dark:border-gray-700 transition-colors duration-300 flex flex-col items-center justify-center">
        <i class="pi pi-star text-6xl text-gray-300 dark:text-gray-600 mb-6 transition-colors duration-300"></i>
-       <h2 class="text-2xl font-bold text-gray-900 dark:text-white transition-colors duration-300">No goals yet!</h2>
-       <p class="text-gray-500 dark:text-gray-400 mt-2 text-lg transition-colors duration-300">Create your first savings goal and start tracking your dreams.</p>
-       <Button label="Create First Goal" icon="pi pi-plus" class="mt-8" size="large" @click="openAddDialog" />
+       <h2 class="text-2xl font-bold text-gray-900 dark:text-white transition-colors duration-300">Henüz hedef yok!</h2>
+       <p class="text-gray-500 dark:text-gray-400 mt-2 text-lg transition-colors duration-300">İlk birikim hedefini oluştur, ilerlemeni buradan takip et.</p>
+       <Button label="İlk Hedefi Oluştur" icon="pi pi-plus" class="mt-8" size="large" @click="openAddDialog" />
     </div>
 
     <Dialog 
       v-model:visible="showAddDialog" 
       modal 
       :draggable="false"
-      :header="editingGoalId ? '✏️ Edit Goal' : '🎯 Create New Goal'" 
+      :header="editingGoalId ? '✏️ Hedefi Düzenle' : '🎯 Yeni Hedef'" 
       :style="{ width: '90vw', maxWidth: '400px' }"
       @hide="resetForm"
     >
        <form @submit.prevent="saveGoal" class="flex flex-col gap-4 mt-2">
          <div class="flex flex-col gap-2">
-            <label for="title" class="font-medium text-gray-700 dark:text-gray-300">Goal Name</label>
-            <InputText id="title" v-model="newGoal.title" placeholder="e.g. New Car, Vacation" required autofocus />
+            <label for="title" class="font-medium text-gray-700 dark:text-gray-300">Hedef adı</label>
+            <InputText id="title" v-model="newGoal.title" placeholder="ör. Yeni araba, Tatil" required autofocus />
          </div>
          <div class="flex flex-col gap-2">
             <label for="target" class="font-medium text-gray-700 dark:text-gray-300">
-              Target Amount (in {{ currentCurrency }})
+              Hedef tutar ({{ currentCurrency }})
             </label>
             <InputNumber id="target" v-model="newGoal.displayTarget" mode="currency" :currency="currentCurrency" required />
          </div>
          <div class="flex justify-end gap-2 mt-6">
-            <Button type="button" label="Cancel" severity="secondary" @click="showAddDialog = false" />
-            <Button type="submit" :label="editingGoalId ? 'Update Goal' : 'Save Goal'" icon="pi pi-check" :loading="isSaving" />
+            <Button type="button" label="Vazgeç" severity="secondary" @click="showAddDialog = false" />
+            <Button type="submit" :label="editingGoalId ? 'Hedefi Güncelle' : 'Hedefi Kaydet'" icon="pi pi-check" :loading="isSaving" />
          </div>
        </form>
     </Dialog>
@@ -83,22 +83,22 @@
       v-model:visible="showAddFundsDialog" 
       modal 
       :draggable="false"
-      :header="`Add Funds to ${selectedGoal?.title}`" 
+      :header="`${selectedGoal?.title} için para ekle`" 
       :style="{ width: '90vw', maxWidth: '400px' }"
     >
        <form @submit.prevent="addFunds" class="flex flex-col gap-4 mt-2">
          <div class="flex flex-col gap-2">
             <label for="fundAmount" class="font-medium text-gray-700 dark:text-gray-300">
-              Amount to Add (in {{ currentCurrency }})
+              Eklenecek tutar ({{ currentCurrency }})
             </label>
             <InputNumber id="fundAmount" v-model="displayAmountToAdd" mode="currency" :currency="currentCurrency" required autofocus />
          </div>
          <p class="text-sm text-gray-500 dark:text-gray-400 italic mt-2 bg-gray-50 dark:bg-gray-700/50 p-3 rounded-lg border border-gray-100 dark:border-gray-600">
-           <i class="pi pi-info-circle mr-1"></i> This amount will also be recorded as an expense in your transactions.
+           <i class="pi pi-info-circle mr-1"></i> Bu tutar işlemlerine gider olarak da kaydedilir.
          </p>
          <div class="flex justify-end gap-2 mt-6">
-            <Button type="button" label="Cancel" severity="secondary" @click="showAddFundsDialog = false" />
-            <Button type="submit" label="Add & Record" icon="pi pi-plus" :loading="isAddingFunds" />
+            <Button type="button" label="Vazgeç" severity="secondary" @click="showAddFundsDialog = false" />
+            <Button type="submit" label="Ekle ve Kaydet" icon="pi pi-plus" :loading="isAddingFunds" />
          </div>
        </form>
     </Dialog>
@@ -194,7 +194,7 @@ const saveGoal = async () => {
 }
 
 const deleteGoal = async (id: number) => {
-  if(!confirm('Are you sure you want to delete this goal?')) return;
+  if(!confirm('Bu hedef silinsin mi?')) return;
   try {
     await $fetch(`${API_BASE}/savings-goals/${id}/`, {
       method: 'DELETE',
@@ -229,7 +229,7 @@ const addFunds = async () => {
       method: 'POST',
       headers: { Authorization: `Bearer ${token.value}`, 'Content-Type': 'application/json' },
       body: {
-        title: `Transfer to Goal: ${selectedGoal.value.title}`,
+        title: `Hedefe aktarım: ${selectedGoal.value.title}`,
         amount: amountToAddInUSD,
         transaction_type: 'EXPENSE',
         category: 'Savings', 
@@ -257,7 +257,7 @@ const calculatePercentage = (current: number, target: number) => {
 
 <style scoped>
 :deep(.p-progressbar-value) { 
-  background-color: #3B82F6 !important; 
+  background-color: #10B981 !important; 
   transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1); 
 }
 :deep(.p-progressbar) { 

@@ -99,7 +99,7 @@ class SubscriptionSerializer(serializers.ModelSerializer):
 
     def validate_amount(self, value):
         if value <= 0:
-            raise serializers.ValidationError('Amount must be greater than zero.')
+            raise serializers.ValidationError('Tutar sıfırdan büyük olmalı.')
         return value
 
     def validate(self, attrs):
@@ -108,12 +108,12 @@ class SubscriptionSerializer(serializers.ModelSerializer):
         if kind == Subscription.Kind.INSTALLMENT:
             if not total or not 1 <= total <= 120:
                 raise serializers.ValidationError(
-                    {'total_installments': 'Installment plans need between 1 and 120 payments.'}
+                    {'total_installments': 'Taksit sayısı 1 ile 120 arasında olmalı.'}
                 )
             paid = getattr(self.instance, 'installments_paid', 0)
             if total < paid:
                 raise serializers.ValidationError(
-                    {'total_installments': f'{paid} installments are already paid.'}
+                    {'total_installments': f'{paid} taksit zaten ödenmiş.'}
                 )
         else:
             attrs['total_installments'] = None

@@ -1,8 +1,8 @@
 <template>
   <div class="lg:p-2 max-w-[1400px] mx-auto">
     <div class="mb-6 sm:mb-8">
-      <h1 class="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white transition-colors duration-300">Settings</h1>
-      <p class="mt-2 text-gray-600 dark:text-gray-400">Manage your application preferences, security, and data.</p>
+      <h1 class="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white transition-colors duration-300">Ayarlar</h1>
+      <p class="mt-2 text-gray-600 dark:text-gray-400">Uygulama tercihlerini, güvenliği ve verilerini yönet.</p>
     </div>
 
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
@@ -12,12 +12,12 @@
           <div class="p-2 bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-lg">
             <i class="pi pi-globe text-xl"></i>
           </div>
-          <h2 class="text-xl font-bold text-gray-900 dark:text-white transition-colors duration-300">Regional Preferences</h2>
+          <h2 class="text-xl font-bold text-gray-900 dark:text-white transition-colors duration-300">Bölgesel Tercihler</h2>
         </div>
         
         <div class="flex flex-col gap-5">
           <div>
-            <label class="block font-bold text-gray-700 dark:text-gray-300 mb-3">Display Currency</label>
+            <label class="block font-bold text-gray-700 dark:text-gray-300 mb-3">Gösterilen Para Birimi</label>
             <Dropdown 
               v-model="localCurrency" 
               :options="currencyOptions" 
@@ -28,7 +28,7 @@
             />
           </div>
           <p class="text-sm text-gray-500 dark:text-gray-400 italic mt-2 bg-gray-50 dark:bg-gray-700/50 p-4 rounded-xl border border-gray-100 dark:border-gray-600">
-            <i class="pi pi-sync mr-2 text-blue-500"></i> Exchange rates are fetched live. Your dashboard will instantly update.
+            <i class="pi pi-sync mr-2 text-blue-500"></i> Kurlar canlı alınır. Panelin anında güncellenir.
           </p>
         </div>
       </div>
@@ -38,11 +38,11 @@
           <div class="p-2 bg-purple-50 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 rounded-lg">
             <i class="pi pi-palette text-xl"></i>
           </div>
-          <h2 class="text-xl font-bold text-gray-900 dark:text-white transition-colors duration-300">Appearance</h2>
+          <h2 class="text-xl font-bold text-gray-900 dark:text-white transition-colors duration-300">Görünüm</h2>
         </div>
         
         <div class="flex flex-col gap-5">
-          <label class="block font-bold text-gray-700 dark:text-gray-300 mb-1">Theme Preference</label>
+          <label class="block font-bold text-gray-700 dark:text-gray-300 mb-1">Tema</label>
           <div class="flex gap-4">
             <button 
               @click="setTheme('light')"
@@ -50,7 +50,7 @@
               class="flex-1 p-4 rounded-2xl border border-gray-200 dark:border-gray-600 flex flex-col items-center gap-2 transition-all"
             >
               <i class="pi pi-sun text-2xl" :class="!isDark ? 'text-purple-600' : 'text-gray-500 dark:text-gray-400'"></i>
-              <span class="font-bold" :class="!isDark ? 'text-purple-700 dark:text-purple-400' : 'text-gray-600 dark:text-gray-300'">Light</span>
+              <span class="font-bold" :class="!isDark ? 'text-purple-700 dark:text-purple-400' : 'text-gray-600 dark:text-gray-300'">Açık</span>
             </button>
             
             <button 
@@ -59,7 +59,7 @@
               class="flex-1 p-4 rounded-2xl border border-gray-200 dark:border-gray-600 flex flex-col items-center gap-2 transition-all"
             >
               <i class="pi pi-moon text-2xl" :class="isDark ? 'text-purple-600 dark:text-purple-400' : 'text-gray-500 dark:text-gray-400'"></i>
-              <span class="font-bold" :class="isDark ? 'text-purple-700 dark:text-purple-400' : 'text-gray-600 dark:text-gray-300'">Dark</span>
+              <span class="font-bold" :class="isDark ? 'text-purple-700 dark:text-purple-400' : 'text-gray-600 dark:text-gray-300'">Koyu</span>
             </button>
           </div>
         </div>
@@ -71,43 +71,43 @@
             <div class="p-2 bg-orange-50 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400 rounded-lg">
               <i class="pi pi-chart-pie text-xl"></i>
             </div>
-            <h2 class="text-xl font-bold text-gray-900 dark:text-white transition-colors duration-300">Monthly Budget Limits</h2>
+            <h2 class="text-xl font-bold text-gray-900 dark:text-white transition-colors duration-300">Aylık Bütçe Limitleri</h2>
           </div>
-          <Button label="Save Budgets" icon="pi pi-save" @click="saveBudgets" :loading="isSavingBudgets" />
+          <Button label="Bütçeleri Kaydet" icon="pi pi-save" @click="saveBudgets" :loading="isSavingBudgets" />
         </div>
         
         <p class="text-gray-600 dark:text-gray-400 mb-8">
-          Set maximum spending limits for your expense categories. Your dashboard will automatically track your progress and alert you before you overspend.
+          Gider kategorilerin için aylık üst sınır belirle. Panelin ilerlemeni takip eder ve limiti aşmadan önce seni uyarır.
         </p>
 
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           
           <div class="flex flex-col gap-2">
             <label class="font-bold text-gray-700 dark:text-gray-300 flex items-center gap-2">
-              <i class="pi pi-shopping-cart text-gray-400"></i> Food
+              <i class="pi pi-shopping-cart text-gray-400"></i> Yemek
             </label>
-            <InputNumber v-model="budgets.Food" mode="currency" :currency="currentCurrency" class="w-full" placeholder="No limit" />
+            <InputNumber v-model="budgets.Food" mode="currency" :currency="currentCurrency" class="w-full" placeholder="Limit yok" />
           </div>
 
           <div class="flex flex-col gap-2">
             <label class="font-bold text-gray-700 dark:text-gray-300 flex items-center gap-2">
-              <i class="pi pi-home text-gray-400"></i> Rent
+              <i class="pi pi-home text-gray-400"></i> Kira
             </label>
-            <InputNumber v-model="budgets.Rent" mode="currency" :currency="currentCurrency" class="w-full" placeholder="No limit" />
+            <InputNumber v-model="budgets.Rent" mode="currency" :currency="currentCurrency" class="w-full" placeholder="Limit yok" />
           </div>
 
           <div class="flex flex-col gap-2">
             <label class="font-bold text-gray-700 dark:text-gray-300 flex items-center gap-2">
-              <i class="pi pi-car text-gray-400"></i> Transport
+              <i class="pi pi-car text-gray-400"></i> Ulaşım
             </label>
-            <InputNumber v-model="budgets.Transport" mode="currency" :currency="currentCurrency" class="w-full" placeholder="No limit" />
+            <InputNumber v-model="budgets.Transport" mode="currency" :currency="currentCurrency" class="w-full" placeholder="Limit yok" />
           </div>
 
           <div class="flex flex-col gap-2">
             <label class="font-bold text-gray-700 dark:text-gray-300 flex items-center gap-2">
-              <i class="pi pi-ticket text-gray-400"></i> Entertainment
+              <i class="pi pi-ticket text-gray-400"></i> Eğlence
             </label>
-            <InputNumber v-model="budgets.Entertainment" mode="currency" :currency="currentCurrency" class="w-full" placeholder="No limit" />
+            <InputNumber v-model="budgets.Entertainment" mode="currency" :currency="currentCurrency" class="w-full" placeholder="Limit yok" />
           </div>
 
         </div>
@@ -118,14 +118,14 @@
           <div class="p-2 bg-green-50 dark:bg-green-900/30 text-green-600 dark:text-green-400 rounded-lg">
             <i class="pi pi-download text-xl"></i>
           </div>
-          <h2 class="text-xl font-bold text-gray-900 dark:text-white transition-colors duration-300">Data & Privacy</h2>
+          <h2 class="text-xl font-bold text-gray-900 dark:text-white transition-colors duration-300">Veri ve Gizlilik</h2>
         </div>
         
         <div class="flex flex-col gap-5">
-          <p class="text-gray-600 dark:text-gray-400">Download a complete copy of your financial transactions for your personal records or tax purposes.</p>
+          <p class="text-gray-600 dark:text-gray-400">Tüm işlemlerinin bir kopyasını kendi kayıtların için indir (Excel'de açılır).</p>
           
           <Button 
-            label="Export Transactions to CSV" 
+            label="İşlemleri CSV Olarak İndir" 
             icon="pi pi-file-excel" 
             severity="success" 
             :loading="isExporting"
@@ -140,22 +140,22 @@
           <div class="p-2 bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400 rounded-lg">
             <i class="pi pi-shield text-xl"></i>
           </div>
-          <h2 class="text-xl font-bold text-gray-900 dark:text-white transition-colors duration-300">Security</h2>
+          <h2 class="text-xl font-bold text-gray-900 dark:text-white transition-colors duration-300">Güvenlik</h2>
         </div>
         
         <div class="flex flex-col gap-6">
           <div class="flex justify-between items-center p-4 bg-gray-50 dark:bg-gray-900/50 rounded-2xl border border-gray-100 dark:border-gray-700">
             <div>
-              <h3 class="font-bold text-gray-900 dark:text-white">Change Password</h3>
-              <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">Update your password regularly to keep your account secure.</p>
+              <h3 class="font-bold text-gray-900 dark:text-white">Şifreyi Değiştir</h3>
+              <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">Hesabını güvende tutmak için şifreni düzenli güncelle.</p>
             </div>
-            <Button label="Update" icon="pi pi-key" severity="secondary" outlined size="small" @click="openPasswordDialog" />
+            <Button label="Güncelle" icon="pi pi-key" severity="secondary" outlined size="small" @click="openPasswordDialog" />
           </div>
 
           <div class="flex justify-between items-center p-4 bg-gray-50 dark:bg-gray-900/50 rounded-2xl border border-gray-100 dark:border-gray-700">
             <div>
-              <h3 class="font-bold text-gray-900 dark:text-white">Two-Factor Auth (2FA)</h3>
-              <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">Add an extra layer of security to your account.</p>
+              <h3 class="font-bold text-gray-900 dark:text-white">İki Adımlı Doğrulama (yakında)</h3>
+              <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">Hesabına ek bir güvenlik katmanı ekle.</p>
             </div>
             <div 
               @click="handle2FAToggle" 
@@ -173,26 +173,26 @@
 
     </div>
 
-    <Dialog v-model:visible="showPasswordDialog" modal header="🔒 Change Password" :style="{ width: '90vw', maxWidth: '450px' }">
+    <Dialog v-model:visible="showPasswordDialog" modal header="🔒 Şifreyi Değiştir" :style="{ width: '90vw', maxWidth: '450px' }">
       <form @submit.prevent="updatePassword" class="flex flex-col gap-5 pt-4">
         <div class="flex flex-col gap-2 password-wrapper">
-          <label for="currentPassword" class="font-bold text-gray-700 dark:text-gray-300">Current Password</label>
-          <Password id="currentPassword" v-model="passwordForm.currentPassword" :feedback="false" toggleMask required placeholder="Enter your current password" inputClass="w-full" />
+          <label for="currentPassword" class="font-bold text-gray-700 dark:text-gray-300">Mevcut şifre</label>
+          <Password id="currentPassword" v-model="passwordForm.currentPassword" :feedback="false" toggleMask required placeholder="Mevcut şifren" inputClass="w-full" />
         </div>
         <div class="flex flex-col gap-2 password-wrapper">
-          <label for="newPassword" class="font-bold text-gray-700 dark:text-gray-300">New Password</label>
-          <Password id="newPassword" v-model="passwordForm.newPassword" toggleMask required placeholder="Enter your new password" inputClass="w-full" />
+          <label for="newPassword" class="font-bold text-gray-700 dark:text-gray-300">Yeni şifre</label>
+          <Password id="newPassword" v-model="passwordForm.newPassword" toggleMask required placeholder="Yeni şifren" inputClass="w-full" />
         </div>
         <div class="flex flex-col gap-2 password-wrapper">
-          <label for="confirmPassword" class="font-bold text-gray-700 dark:text-gray-300">Confirm New Password</label>
-          <Password id="confirmPassword" v-model="passwordForm.confirmPassword" :feedback="false" toggleMask required placeholder="Re-enter your new password" inputClass="w-full" />
+          <label for="confirmPassword" class="font-bold text-gray-700 dark:text-gray-300">Yeni şifre (tekrar)</label>
+          <Password id="confirmPassword" v-model="passwordForm.confirmPassword" :feedback="false" toggleMask required placeholder="Yeni şifreni tekrar yaz" inputClass="w-full" />
         </div>
         <div v-if="passwordError" class="bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 p-3 rounded-lg text-sm font-medium border border-red-100 dark:border-red-800/50">
           <i class="pi pi-exclamation-circle mr-1"></i> {{ passwordError }}
         </div>
         <div class="flex justify-end gap-3 mt-4">
-          <Button type="button" label="Cancel" severity="secondary" text @click="showPasswordDialog = false" />
-          <Button type="submit" label="Update Password" icon="pi pi-check" :loading="isUpdatingPassword" />
+          <Button type="button" label="Vazgeç" severity="secondary" text @click="showPasswordDialog = false" />
+          <Button type="submit" label="Şifreyi Güncelle" icon="pi pi-check" :loading="isUpdatingPassword" />
         </div>
       </form>
     </Dialog>
@@ -236,12 +236,12 @@ const showBudgets = (stored: Record<string, number>) => {
 }
 
 onMounted(async () => {
-  isDark.value = localStorage.getItem('theme') === 'dark'
+  isDark.value = document.documentElement.classList.contains('dark')
   try {
     showBudgets(await fetchBudgets())
   } catch (error) {
     console.error('Budgets could not be loaded:', error)
-    toast.add({ severity: 'error', summary: 'Error', detail: 'Could not load your budgets.', life: 3000 })
+    toast.add({ severity: 'error', summary: 'Hata', detail: 'Bütçelerin yüklenemedi.', life: 3000 })
   }
 })
 
@@ -257,10 +257,10 @@ const saveBudgets = async () => {
 
   try {
     showBudgets(await saveBudgetsToServer(baseBudgets))
-    toast.add({ severity: 'success', summary: 'Success', detail: 'Budgets saved successfully!', life: 3000 })
+    toast.add({ severity: 'success', summary: 'Kaydedildi', detail: 'Bütçelerin kaydedildi.', life: 3000 })
   } catch (error) {
     console.error('Budgets could not be saved:', error)
-    toast.add({ severity: 'error', summary: 'Error', detail: 'Budgets could not be saved.', life: 3000 })
+    toast.add({ severity: 'error', summary: 'Hata', detail: 'Bütçeler kaydedilemedi.', life: 3000 })
   } finally {
     isSavingBudgets.value = false
   }
@@ -294,14 +294,16 @@ const exportCSV = async () => {
       headers: { Authorization: `Bearer ${token.value}` }
     })
     if (!data || data.length === 0) {
-      toast.add({ severity: 'warn', summary: 'Warning', detail: 'No transactions found to export!', life: 3000 });
+      toast.add({ severity: 'warn', summary: 'Uyarı', detail: 'İndirilecek işlem bulunamadı.', life: 3000 });
       isExporting.value = false
       return
     }
-    const headers = ['Date', 'Title', 'Category', 'Type', 'Amount (USD)', 'Description']
-    const rows = data.map(tx => [tx.date, `"${tx.title}"`, `"${tx.category}"`, tx.transaction_type, tx.amount, `"${tx.description || ''}"`])
-    const csvContent = [headers.join(','), ...rows.map(e => e.join(','))].join('\n')
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
+    const headers = ['Tarih', 'Başlık', 'Kategori', 'Tür', 'Tutar (USD)', 'Açıklama']
+    const esc = (v: unknown) => `"${String(v ?? '').replace(/"/g, '""')}"`
+    const rows = data.map(tx => [tx.date, esc(tx.title), esc(categoryLabel(tx.category)), tx.transaction_type === 'INCOME' ? 'Gelir' : 'Gider', tx.amount, esc(tx.description)])
+    const csvContent = [headers.join(';'), ...rows.map(e => e.join(';'))].join('\r\n')
+    // BOM so Excel reads Turkish characters correctly
+    const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' })
     const link = document.createElement('a')
     const url = URL.createObjectURL(blob)
     link.setAttribute('href', url)
@@ -311,7 +313,7 @@ const exportCSV = async () => {
     link.click()
     document.body.removeChild(link)
   } catch (error) {
-    toast.add({ severity: 'error', summary: 'Error', detail: 'Export failed!', life: 3000 });
+    toast.add({ severity: 'error', summary: 'Hata', detail: 'İndirme başarısız oldu.', life: 3000 });
   } finally {
     isExporting.value = false
   }
@@ -324,8 +326,8 @@ const handle2FAToggle = () => {
   
   toast.add({ 
     severity: 'info', 
-    summary: ' Coming Soon!', 
-    detail: 'Email 2FA Integration is scheduled for Version 2.0.', 
+    summary: 'Yakında!', 
+    detail: 'İki adımlı doğrulama sonraki sürümde gelecek.', 
     life: 4000 
   });
   
@@ -350,11 +352,11 @@ const openPasswordDialog = () => {
 const updatePassword = async () => {
   passwordError.value = ''
   if (passwordForm.value.newPassword !== passwordForm.value.confirmPassword) {
-    passwordError.value = 'New passwords do not match!'
+    passwordError.value = 'Yeni şifreler eşleşmiyor.'
     return
   }
   if (passwordForm.value.newPassword.length < 8) {
-    passwordError.value = 'Password must be at least 8 characters long.'
+    passwordError.value = 'Şifre en az 8 karakter olmalı.'
     return
   }
   isUpdatingPassword.value = true
@@ -368,7 +370,7 @@ const updatePassword = async () => {
       },
     })
     showPasswordDialog.value = false
-    toast.add({ severity: 'success', summary: 'Updated', detail: 'Password changed successfully!', life: 3000 })
+    toast.add({ severity: 'success', summary: 'Güncellendi', detail: 'Şifren değiştirildi.', life: 3000 })
   } catch (error: any) {
     // Django returns field errors, e.g. { current_password: ["Invalid password."] }
     const data = error?.data || {}
@@ -377,7 +379,7 @@ const updatePassword = async () => {
       data.new_password?.[0] ||
       data.non_field_errors?.[0] ||
       data.detail ||
-      'Password could not be changed. Please try again.'
+      'Şifre değiştirilemedi. Lütfen tekrar dene.'
   } finally {
     isUpdatingPassword.value = false
   }

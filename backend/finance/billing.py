@@ -65,7 +65,7 @@ def bill_due_subscriptions(user=None, today: date | None = None) -> int:
                         transaction_type=sub.transaction_type,
                         category=sub.effective_category,
                         date=sub.due_date,
-                        description=f"Automatic {'income' if is_income else 'payment'}: {sub.name} (recurring)",
+                        description=f"Otomatik {'gelir' if is_income else 'ödeme'}: {sub.name}",
                     )
                     sub.last_billed_date = sub.due_date
                     if sub.total_installments:

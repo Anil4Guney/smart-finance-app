@@ -1,8 +1,8 @@
 <template>
   <div class="lg:p-2 max-w-[1400px] mx-auto">
     <div class="mb-6 sm:mb-8">
-      <h1 class="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white transition-colors duration-300">My Profile</h1>
-      <p class="mt-2 text-gray-600 dark:text-gray-400">View and update your personal account information.</p>
+      <h1 class="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white transition-colors duration-300">Profilim</h1>
+      <p class="mt-2 text-gray-600 dark:text-gray-400">Hesap bilgilerini görüntüle ve güncelle.</p>
     </div>
 
     <div class="card p-5 sm:p-8 rounded-3xl shadow-sm bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 transition-colors duration-300 flex flex-col md:flex-row gap-10 items-start min-h-[500px]">
@@ -16,7 +16,7 @@
         
         <div class="flex flex-col gap-3 w-full max-w-[200px]">
           <Button 
-            label="Upload Photo" 
+            label="Fotoğraf Yükle" 
             icon="pi pi-camera" 
             severity="secondary" 
             outlined 
@@ -26,7 +26,7 @@
           />
           <Button 
             v-if="photoPreview"
-            label="Remove Photo" 
+            label="Fotoğrafı Kaldır" 
             icon="pi pi-trash" 
             severity="danger" 
             text 
@@ -46,59 +46,59 @@
       
       <div class="flex-1 w-full pl-0 md:pl-4">
         <h2 class="text-2xl font-bold mb-8 border-b pb-4 border-gray-100 dark:border-gray-700 text-gray-900 dark:text-white transition-colors duration-300">
-          Personal Information
+          Kişisel Bilgiler
         </h2>
         
         <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
           <div class="flex flex-col gap-3">
-            <label class="text-sm font-bold text-gray-500 dark:text-gray-400">First Name</label>
+            <label class="text-sm font-bold text-gray-500 dark:text-gray-400">Ad</label>
             <div class="p-4 bg-gray-50 dark:bg-gray-900/50 rounded-2xl border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white font-medium text-lg capitalize">
-              {{ user?.first_name || 'Not provided' }}
+              {{ user?.first_name || 'Eklenmemiş' }}
             </div>
           </div>
           
           <div class="flex flex-col gap-3">
-            <label class="text-sm font-bold text-gray-500 dark:text-gray-400">Last Name</label>
+            <label class="text-sm font-bold text-gray-500 dark:text-gray-400">Soyad</label>
             <div class="p-4 bg-gray-50 dark:bg-gray-900/50 rounded-2xl border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white font-medium text-lg uppercase">
-              {{ user?.last_name || 'Not provided' }}
+              {{ user?.last_name || 'Eklenmemiş' }}
             </div>
           </div>
           
           <div class="flex flex-col gap-3 md:col-span-2">
-            <label class="text-sm font-bold text-gray-500 dark:text-gray-400">Email Address</label>
+            <label class="text-sm font-bold text-gray-500 dark:text-gray-400">E-posta</label>
             <div class="p-4 bg-gray-50 dark:bg-gray-900/50 rounded-2xl border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white font-medium text-lg">
-              {{ user?.email || 'Not provided' }}
+              {{ user?.email || 'Eklenmemiş' }}
             </div>
           </div>
         </div>
 
         <div class="mt-10 pt-6 border-t border-gray-100 dark:border-gray-700 flex justify-end">
-           <Button label="Edit Profile Details" icon="pi pi-pencil" size="large" @click="openEditDialog" />
+           <Button label="Bilgilerimi Düzenle" icon="pi pi-pencil" size="large" @click="openEditDialog" />
         </div>
       </div>
     </div>
 
-    <Dialog v-model:visible="showEditDialog" modal header=" Edit Profile Details" :style="{ width: '90vw', maxWidth: '450px' }">
+    <Dialog v-model:visible="showEditDialog" modal header="Bilgilerimi Düzenle" :style="{ width: '90vw', maxWidth: '450px' }">
       <form @submit.prevent="saveProfile" class="flex flex-col gap-5 pt-4">
         
         <div class="flex flex-col gap-2">
-          <label for="editFirstName" class="font-bold text-gray-700 dark:text-gray-300">First Name</label>
-          <InputText id="editFirstName" v-model="editForm.first_name" class="w-full" placeholder="Enter your first name" />
+          <label for="editFirstName" class="font-bold text-gray-700 dark:text-gray-300">Ad</label>
+          <InputText id="editFirstName" v-model="editForm.first_name" class="w-full" placeholder="Adın" />
         </div>
 
         <div class="flex flex-col gap-2">
-          <label for="editLastName" class="font-bold text-gray-700 dark:text-gray-300">Last Name</label>
-          <InputText id="editLastName" v-model="editForm.last_name" class="w-full" placeholder="Enter your last name" />
+          <label for="editLastName" class="font-bold text-gray-700 dark:text-gray-300">Soyad</label>
+          <InputText id="editLastName" v-model="editForm.last_name" class="w-full" placeholder="Soyadın" />
         </div>
 
         <div class="flex flex-col gap-2">
-          <label for="editEmail" class="font-bold text-gray-700 dark:text-gray-300">Email Address</label>
-          <InputText id="editEmail" v-model="editForm.email" type="email" class="w-full" placeholder="Enter your email" />
+          <label for="editEmail" class="font-bold text-gray-700 dark:text-gray-300">E-posta</label>
+          <InputText id="editEmail" v-model="editForm.email" type="email" class="w-full" placeholder="E-posta adresin" />
         </div>
 
         <div class="flex justify-end gap-3 mt-4">
-          <Button type="button" label="Cancel" severity="secondary" text @click="showEditDialog = false" />
-          <Button type="submit" label="Save Changes" icon="pi pi-check" :loading="isSavingProfile" />
+          <Button type="button" label="Vazgeç" severity="secondary" text @click="showEditDialog = false" />
+          <Button type="submit" label="Kaydet" icon="pi pi-check" :loading="isSavingProfile" />
         </div>
       </form>
     </Dialog>
@@ -164,8 +164,8 @@ const saveProfile = async () => {
 
     toast.add({ 
       severity: 'success', 
-      summary: 'Saved', 
-      detail: 'Profile saved to database permanently!', 
+      summary: 'Kaydedildi', 
+      detail: 'Bilgilerin güncellendi.', 
       life: 3000 
     })
     
@@ -174,8 +174,8 @@ const saveProfile = async () => {
     console.error("Backend Error:", error)
     toast.add({ 
       severity: 'error', 
-      summary: 'Error', 
-      detail: 'Could not connect to database.', 
+      summary: 'Hata', 
+      detail: 'Bilgiler kaydedilemedi. Lütfen tekrar dene.', 
       life: 3000 
     })
   } finally {

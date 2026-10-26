@@ -36,7 +36,11 @@ export const useAuth = () => {
       await fetchUser() 
       return { success: true }
     } catch (error: any) {
-      return { success: false, error: error.data?.detail || 'Login failed' }
+      const wrongCredentials = error?.response?.status === 401
+      return {
+        success: false,
+        error: wrongCredentials ? 'Kullanıcı adı veya şifre hatalı.' : (error.data?.detail || 'Giriş yapılamadı. Lütfen tekrar dene.'),
+      }
     }
   }
 
@@ -64,7 +68,7 @@ export const useAuth = () => {
       return loginResult
     } catch (error: any) {
       // Hatayı net görebilmek için yakalama kodunu geliştirdim
-      const errMsg = error.data?.username?.[0] || error.data?.email?.[0] || error.data?.password?.[0] || 'Registration failed'
+      const errMsg = error.data?.username?.[0] || error.data?.email?.[0] || error.data?.password?.[0] || 'Kayıt oluşturulamadı. Lütfen tekrar dene.'
       return { success: false, error: errMsg }
     }
   }

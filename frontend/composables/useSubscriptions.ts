@@ -7,12 +7,12 @@ import { useAuth } from '~/composables/useAuth'
 export type RecurringKind = 'SALARY' | 'RENT' | 'BILL' | 'SUBSCRIPTION' | 'INSTALLMENT' | 'OTHER'
 
 export const RECURRING_KINDS: Record<RecurringKind, { label: string; icon: string; colorClass: string; type: 'INCOME' | 'EXPENSE' | null }> = {
-  SALARY: { label: 'Salary', icon: 'pi-wallet', colorClass: 'bg-emerald-100 text-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-400', type: 'INCOME' },
-  RENT: { label: 'Rent', icon: 'pi-home', colorClass: 'bg-amber-100 text-amber-600 dark:bg-amber-900/30 dark:text-amber-400', type: 'EXPENSE' },
-  BILL: { label: 'Bill', icon: 'pi-bolt', colorClass: 'bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400', type: 'EXPENSE' },
-  SUBSCRIPTION: { label: 'Subscription', icon: 'pi-play-circle', colorClass: 'bg-purple-100 text-purple-600 dark:bg-purple-900/30 dark:text-purple-400', type: 'EXPENSE' },
-  INSTALLMENT: { label: 'Installment', icon: 'pi-credit-card', colorClass: 'bg-rose-100 text-rose-600 dark:bg-rose-900/30 dark:text-rose-400', type: 'EXPENSE' },
-  OTHER: { label: 'Other', icon: 'pi-replay', colorClass: 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300', type: null },
+  SALARY: { label: 'Maaş', icon: 'pi-wallet', colorClass: 'bg-emerald-100 text-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-400', type: 'INCOME' },
+  RENT: { label: 'Kira', icon: 'pi-home', colorClass: 'bg-amber-100 text-amber-600 dark:bg-amber-900/30 dark:text-amber-400', type: 'EXPENSE' },
+  BILL: { label: 'Fatura', icon: 'pi-bolt', colorClass: 'bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400', type: 'EXPENSE' },
+  SUBSCRIPTION: { label: 'Abonelik', icon: 'pi-play-circle', colorClass: 'bg-purple-100 text-purple-600 dark:bg-purple-900/30 dark:text-purple-400', type: 'EXPENSE' },
+  INSTALLMENT: { label: 'Taksit', icon: 'pi-credit-card', colorClass: 'bg-rose-100 text-rose-600 dark:bg-rose-900/30 dark:text-rose-400', type: 'EXPENSE' },
+  OTHER: { label: 'Diğer', icon: 'pi-replay', colorClass: 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300', type: null },
 }
 
 // Values the page form works with. amount is in USD (the stored base currency).
@@ -44,6 +44,7 @@ const fromApi = (sub: any) => {
     installmentsPaid: sub.installments_paid as number,
     remainingInstallments: sub.remaining_installments as number | null,
     remainingAmount: sub.remaining_amount != null ? Number(sub.remaining_amount) : null,
+    totalPrice: sub.total_price != null ? Number(sub.total_price) : null,
     isActive: sub.is_active as boolean,
     autoPay: sub.auto_pay as boolean,
     icon: meta.icon,
@@ -80,7 +81,7 @@ export const useSubscriptions = () => {
       const data = await $fetch<any[]>(`${API_BASE}/subscriptions/`, { headers: authHeaders() })
       subscriptions.value = data.map(fromApi)
     } catch (error) {
-      console.error('Recurring items could not be loaded:', error)
+      console.error('Tekrarlayan ödemeler yüklenemedi:', error)
     }
   }
 
@@ -128,10 +129,10 @@ export const useSubscriptions = () => {
 
   const getRelativeDateString = (date: string | Date) => {
     const days = getDaysLeft(date)
-    if (days === 0) return 'Due Today'
-    if (days === 1) return 'Due Tomorrow'
-    if (days < 0) return `Overdue by ${Math.abs(days)} days`
-    return `In ${days} days`
+    if (days === 0) return 'Bugün'
+    if (days === 1) return 'Yarın'
+    if (days < 0) return `${Math.abs(days)} gün gecikti`
+    return `${days} gün sonra`
   }
 
   const notifications = computed(() => {
@@ -142,8 +143,8 @@ export const useSubscriptions = () => {
       .filter(sub => !dismissedNotifs.value.includes(sub.id))
       .map(sub => ({
         id: sub.id,
-        title: `${sub.name} Payment`,
-        message: `${sub.name}: ${formatCurrency(sub.amount)} is ${getRelativeDateString(sub.dueDate).toLowerCase()}`,
+        title: `${sub.name} ödemesi`,
+        message: `${formatCurrency(sub.amount)} · ${getRelativeDateString(sub.dueDate).toLowerCase()}`,
         icon: sub.icon,
         colorClass: sub.colorClass,
         isRead: readNotifs.value.includes(sub.id)

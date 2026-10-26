@@ -8,7 +8,7 @@
         </div>
         <h1 class="auth-title">SmartFinance</h1>
         <p class="auth-subtitle">
-          Take control of your money. Track income, expenses, and reach your goals.
+          Paranın kontrolü sende. Gelirini, giderini ve hedeflerini tek yerden takip et.
         </p>
       </div>
     </div>
@@ -22,8 +22,8 @@
           </div>
           <h1 class="text-xl font-bold text-gray-900 dark:text-white">SmartFinance</h1>
         </div>
-        <h2 class="auth-heading">Welcome back</h2>
-        <p class="auth-desc">Sign in to your account to continue.</p>
+        <h2 class="auth-heading">Tekrar hoş geldin</h2>
+        <p class="auth-desc">Devam etmek için hesabına giriş yap.</p>
 
         <form @submit.prevent="handleLogin" class="auth-form mt-8">
           <div class="input-float-group">
@@ -34,7 +34,7 @@
               :class="{ 'filled': username }"
               required
             />
-            <label for="username" class="input-float-label">Username</label>
+            <label for="username" class="input-float-label">Kullanıcı adı</label>
           </div>
           <div class="input-float-group mt-6">
             <InputText
@@ -46,11 +46,11 @@
               autocomplete="current-password"
               required
             />
-            <label for="password" class="input-float-label">Password</label>
+            <label for="password" class="input-float-label">Şifre</label>
             <button
               type="button"
               class="password-toggle"
-              :aria-label="showPassword ? 'Hide password' : 'Show password'"
+              :aria-label="showPassword ? 'Şifreyi gizle' : 'Şifreyi göster'"
               @click="showPassword = !showPassword"
             >
               <i :class="['pi', showPassword ? 'pi-eye-slash' : 'pi-eye']" />
@@ -59,13 +59,13 @@
           <div v-if="error" class="mt-4 text-red-600 text-sm font-medium">{{ error }}</div>
           <Button
             type="submit"
-            label="Login"
+            label="Giriş yap"
             class="auth-btn w-full mt-8"
             :loading="loading"
           />
           <p class="auth-footer">
-            Don't have an account?
-            <NuxtLink to="/register" class="auth-link">Register</NuxtLink>
+            Hesabın yok mu?
+            <NuxtLink to="/register" class="auth-link">Kayıt ol</NuxtLink>
           </p>
         </form>
       </div>
@@ -99,7 +99,7 @@ const handleLogin = async () => {
   if (result.success) {
     router.push('/')
   } else {
-    error.value = result.error || 'Login failed'
+    error.value = result.error || 'Giriş yapılamadı'
   }
 }
 </script>

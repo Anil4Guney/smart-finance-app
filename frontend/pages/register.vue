@@ -7,7 +7,7 @@
         </div>
         <h1 class="auth-title">SmartFinance</h1>
         <p class="auth-subtitle">
-          Create your account and start managing your finances with clarity and confidence.
+          Hesabını oluştur, paranı netlikle ve güvenle yönetmeye başla.
         </p>
       </div>
     </div>
@@ -20,8 +20,8 @@
           </div>
           <h1 class="text-xl font-bold text-gray-900 dark:text-white">SmartFinance</h1>
         </div>
-        <h2 class="auth-heading">Create account</h2>
-        <p class="auth-desc">Fill in your details to get started.</p>
+        <h2 class="auth-heading">Hesap oluştur</h2>
+        <p class="auth-desc">Başlamak için bilgilerini doldur.</p>
 
         <form @submit.prevent="handleRegister" class="auth-form mt-8">
           
@@ -34,7 +34,7 @@
                 :class="{ 'filled': firstName }"
                 required
               />
-              <label for="firstName" class="input-float-label">First Name</label>
+              <label for="firstName" class="input-float-label">Ad</label>
             </div>
             <div class="input-float-group flex-1">
               <InputText
@@ -44,7 +44,7 @@
                 :class="{ 'filled': lastName }"
                 required
               />
-              <label for="lastName" class="input-float-label">Last Name</label>
+              <label for="lastName" class="input-float-label">Soyad</label>
             </div>
           </div>
 
@@ -56,7 +56,7 @@
               :class="{ 'filled': username }"
               required
             />
-            <label for="username" class="input-float-label">Username</label>
+            <label for="username" class="input-float-label">Kullanıcı adı</label>
           </div>
           
           <div class="input-float-group mt-6">
@@ -68,7 +68,7 @@
               :class="{ 'filled': email }"
               required
             />
-            <label for="email" class="input-float-label">Email</label>
+            <label for="email" class="input-float-label">E-posta</label>
           </div>
           
           <div class="input-float-group mt-6">
@@ -81,30 +81,30 @@
               autocomplete="new-password"
               required
             />
-            <label for="password" class="input-float-label">Password</label>
+            <label for="password" class="input-float-label">Şifre</label>
             <button
               type="button"
               class="password-toggle"
-              :aria-label="showPassword ? 'Hide password' : 'Show password'"
+              :aria-label="showPassword ? 'Şifreyi gizle' : 'Şifreyi göster'"
               @click="showPassword = !showPassword"
             >
               <i :class="['pi', showPassword ? 'pi-eye-slash' : 'pi-eye']" />
             </button>
           </div>
-            <p class="mt-2 text-xs text-gray-500 dark:text-gray-400">At least 8 characters. Avoid common or only-number passwords.</p>
+            <p class="mt-2 text-xs text-gray-500 dark:text-gray-400">En az 8 karakter. Çok yaygın veya sadece rakamdan oluşan şifreler kabul edilmez.</p>
           
           <div v-if="error" class="mt-4 text-red-600 text-sm font-medium">{{ error }}</div>
           
           <Button
             type="submit"
-            label="Register"
+            label="Kayıt ol"
             class="auth-btn w-full mt-8"
             :loading="loading"
           />
           
           <p class="auth-footer">
-            Already have an account?
-            <NuxtLink to="/login" class="auth-link">Login</NuxtLink>
+            Zaten hesabın var mı?
+            <NuxtLink to="/login" class="auth-link">Giriş yap</NuxtLink>
           </p>
         </form>
       </div>
@@ -155,7 +155,7 @@ const handleRegister = async () => {
   if (result.success) {
     router.push('/')
   } else {
-    error.value = result.error || 'Registration failed'
+    error.value = result.error || 'Kayıt oluşturulamadı'
   }
 }
 </script>

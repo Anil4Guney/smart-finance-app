@@ -85,19 +85,19 @@ def analyze_receipt(image_file) -> dict:
     }
 
 
-def describe_ai_error(exc: Exception, fallback: str = "The AI assistant is unavailable right now. Please try again later.") -> tuple[int, str]:
+def describe_ai_error(exc: Exception, fallback: str = "Yapay zekâ asistanı şu an kullanılamıyor. Lütfen daha sonra tekrar dene.") -> tuple[int, str]:
     """Turn a Gemini/AI failure into an HTTP status and a message the user can act on."""
     from google.api_core import exceptions as google_errors
 
     text = str(exc).lower()
     if isinstance(exc, google_errors.ResourceExhausted) or "quota" in text or "rate limit" in text:
-        return 503, "The AI service has reached its usage limit for now. Please try again in a few minutes."
+        return 503, "Yapay zekâ servisinin kullanım sınırı şu an doldu. Birkaç dakika sonra tekrar dene."
     if isinstance(exc, (google_errors.PermissionDenied, google_errors.Unauthenticated)) or "api key" in text:
-        return 503, "The AI service key is invalid or expired. The app owner needs to update GEMINI_API_KEY."
+        return 503, "Yapay zekâ servisinin anahtarı geçersiz veya süresi dolmuş. Uygulama sahibi GEMINI_API_KEY değerini güncellemeli."
     if isinstance(exc, google_errors.NotFound):
-        return 503, "The configured AI model is not available. The app owner needs to update GEMINI_MODEL."
+        return 503, "Ayarlı yapay zekâ modeli kullanılamıyor. Uygulama sahibi GEMINI_MODEL değerini güncellemeli."
     if isinstance(exc, (google_errors.DeadlineExceeded, google_errors.ServiceUnavailable, google_errors.InternalServerError)):
-        return 503, "The AI service is busy right now. Please try again in a moment."
+        return 503, "Yapay zekâ servisi şu an yoğun. Biraz sonra tekrar dene."
     if isinstance(exc, ValueError) and "not configured" in text:
-        return 503, "AI service is not configured."
+        return 503, "Yapay zekâ servisi yapılandırılmamış."
     return 502, fallback
