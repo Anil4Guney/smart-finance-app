@@ -61,7 +61,7 @@ def bill_due_subscriptions(user=None, today: date | None = None) -> int:
                         user=sub.user,
                         recurring=sub,
                         title=auto_pay_title(sub, number),
-                        amount=sub.amount,
+                        amount=sub.payment_amount(number),
                         transaction_type=sub.transaction_type,
                         category=sub.effective_category,
                         date=sub.due_date,

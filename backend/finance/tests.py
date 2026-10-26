@@ -325,3 +325,32 @@ class AiErrorMessageTests(TestCase):
         self.assertIn('GEMINI_API_KEY', describe_ai_error(google_errors.PermissionDenied('API key expired'))[1])
         self.assertIn('GEMINI_MODEL', describe_ai_error(google_errors.NotFound('model gone'))[1])
         self.assertEqual(describe_ai_error(RuntimeError('boom'), fallback='x'), (502, 'x'))
+
+
+class InstallmentRoundingTests(TestCase):
+    def setUp(self):
+        self.user = User.objects.create_user('ali', password='S3cure-pass-123')
+
+    def test_last_installment_settles_exact_total(self):
+        # 100 / 6 = 16.67 rounded; six payments must still add up to exactly 100.00
+        make_subscription(self.user, date(2026, 1, 10), kind='INSTALLMENT', total_installments=6,
+                          amount=Decimal('16.67'), total_price=Decimal('100.00'))
+        bill_due_subscriptions(today=date(2026, 12, 31))
+        amounts = list(Transaction.objects.order_by('date').values_list('amount', flat=True))
+        self.assertEqual(len(amounts), 6)
+        self.assertEqual(sum(amounts), Decimal('100.00'))
+        self.assertEqual(amounts[-1], Decimal('16.65'))
+
+    def test_remaining_amount_uses_total_price(self):
+        sub = make_subscription(self.user, date(2026, 1, 10), kind='INSTALLMENT', total_installments=6,
+                                amount=Decimal('16.67'), total_price=Decimal('100.00'))
+        self.assertEqual(sub.remaining_amount, Decimal('100.00'))
+        Subscription.objects.filter(pk=sub.pk).update(installments_paid=5)
+        sub.refresh_from_db()
+        self.assertEqual(sub.remaining_amount, Decimal('16.65'))
+
+    def test_monthly_only_plan_keeps_monthly_amount(self):
+        sub = make_subscription(self.user, date(2026, 1, 10), kind='INSTALLMENT', total_installments=3,
+                                amount=Decimal('50.00'))
+        self.assertEqual(sub.remaining_amount, Decimal('150.00'))
+        self.assertEqual(sub.payment_amount(3), Decimal('50.00'))

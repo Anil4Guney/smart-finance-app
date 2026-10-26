@@ -69,6 +69,7 @@ class CategoryBudgetSerializer(serializers.ModelSerializer):
 class SubscriptionSerializer(serializers.ModelSerializer):
     """Recurring income/expense plan (salary, rent, bills, subscriptions, installments)."""
     remaining_installments = serializers.IntegerField(read_only=True)
+    remaining_amount = serializers.DecimalField(max_digits=12, decimal_places=2, read_only=True)
     effective_category = serializers.CharField(read_only=True)
 
     class Meta:
@@ -85,6 +86,8 @@ class SubscriptionSerializer(serializers.ModelSerializer):
             'total_installments',
             'installments_paid',
             'remaining_installments',
+            'total_price',
+            'remaining_amount',
             'icon',
             'color_class',
             'is_active',
@@ -114,6 +117,7 @@ class SubscriptionSerializer(serializers.ModelSerializer):
                 )
         else:
             attrs['total_installments'] = None
+            attrs['total_price'] = None
         if kind == Subscription.Kind.SALARY:
             attrs['transaction_type'] = Transaction.TransactionType.INCOME
         elif kind in (Subscription.Kind.RENT, Subscription.Kind.BILL,

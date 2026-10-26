@@ -24,6 +24,7 @@ export interface RecurringInput {
   category?: string
   dueDate: Date
   totalInstallments?: number | null
+  totalPrice?: number | null // USD; set when the user entered the total instead of the monthly amount
   autoPay?: boolean
 }
 
@@ -42,6 +43,7 @@ const fromApi = (sub: any) => {
     totalInstallments: sub.total_installments as number | null,
     installmentsPaid: sub.installments_paid as number,
     remainingInstallments: sub.remaining_installments as number | null,
+    remainingAmount: sub.remaining_amount != null ? Number(sub.remaining_amount) : null,
     isActive: sub.is_active as boolean,
     autoPay: sub.auto_pay as boolean,
     icon: meta.icon,
@@ -57,6 +59,7 @@ const toApi = (sub: RecurringInput) => ({
   category: sub.category || '',
   due_date: toApiDate(sub.dueDate),
   total_installments: sub.kind === 'INSTALLMENT' ? sub.totalInstallments : null,
+  total_price: sub.kind === 'INSTALLMENT' ? (sub.totalPrice ?? null) : null,
   auto_pay: sub.autoPay ?? true,
   icon: RECURRING_KINDS[sub.kind]?.icon,
 })

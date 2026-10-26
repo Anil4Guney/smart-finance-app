@@ -107,6 +107,9 @@ class Subscription(models.Model):
     # The plan switches itself off after the last one.
     total_installments = models.PositiveSmallIntegerField(null=True, blank=True)
     installments_paid = models.PositiveSmallIntegerField(default=0)
+    # Full price when the user entered the total instead of the monthly amount.
+    # The last installment absorbs the rounding difference (6 x 16.67 != 100).
+    total_price = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True)
     # Next payment date. Moved forward one month each time the bill is paid.
     due_date = models.DateField()
     # Day of month the bill is due (1-31). Kept separately so a bill on the 31st
@@ -132,6 +135,22 @@ class Subscription(models.Model):
     @property
     def effective_category(self):
         return self.category or self.DEFAULT_CATEGORY.get(self.kind, 'Other')
+
+    def payment_amount(self, installment_number=None):
+        """Amount of one payment; the last installment settles the exact total price."""
+        if (installment_number and self.total_price and self.total_installments
+                and installment_number == self.total_installments):
+            return self.total_price - self.amount * (self.total_installments - 1)
+        return self.amount
+
+    @property
+    def remaining_amount(self):
+        """Money still to pay on an installment plan (None for ordinary recurring items)."""
+        if not self.total_installments:
+            return None
+        if self.total_price:
+            return max(self.total_price - self.amount * self.installments_paid, 0)
+        return self.amount * (self.remaining_installments or 0)
 
     @property
     def remaining_installments(self):

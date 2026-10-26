@@ -30,8 +30,8 @@ def _money(value: Decimal) -> float:
     return float(Decimal(value).quantize(TWO_PLACES))
 
 
-def _upcoming_occurrences(sub: Subscription, after: date, until: date) -> list[date]:
-    """Payment dates of `sub` in (after, until]."""
+def _upcoming_occurrences(sub: Subscription, after: date, until: date) -> list[tuple[date, int | None]]:
+    """Payment dates (and installment numbers) of `sub` in (after, until]."""
     billing_day = sub.billing_day or sub.due_date.day
     if sub.auto_pay:
         current = sub.due_date  # next unpaid date (past ones were billed already)
@@ -40,12 +40,15 @@ def _upcoming_occurrences(sub: Subscription, after: date, until: date) -> list[d
         last = calendar.monthrange(after.year, after.month)[1]
         current = max(sub.due_date, date(after.year, after.month, min(billing_day, last)))
     remaining = sub.remaining_installments
-    dates = []
-    while current <= until and (remaining is None or len(dates) < remaining):
+    occurrences = []  # (date, installment number or None)
+    counted = 0
+    while current <= until and (remaining is None or counted < remaining):
+        counted += 1
         if current > after:
-            dates.append(current)
+            number = sub.installments_paid + counted if sub.total_installments else None
+            occurrences.append((current, number))
         current = next_due_date(current, billing_day)
-    return dates
+    return occurrences
 
 
 def monthly_forecast(user, today: date | None = None) -> dict:
@@ -63,19 +66,20 @@ def monthly_forecast(user, today: date | None = None) -> dict:
     upcoming = []
     upcoming_income = upcoming_expense = Decimal('0')
     for sub in Subscription.objects.filter(user=user, is_active=True):
-        for when in _upcoming_occurrences(sub, today, month_end):
+        for when, number in _upcoming_occurrences(sub, today, month_end):
+            payment = sub.payment_amount(number)
             upcoming.append({
                 'id': sub.id,
                 'name': sub.name,
                 'kind': sub.kind,
                 'transaction_type': sub.transaction_type,
-                'amount': _money(sub.amount),
+                'amount': _money(payment),
                 'date': when.isoformat(),
             })
             if sub.transaction_type == 'INCOME':
-                upcoming_income += sub.amount
+                upcoming_income += payment
             else:
-                upcoming_expense += sub.amount
+                upcoming_expense += payment
     upcoming.sort(key=lambda item: item['date'])
 
     # --- Everyday (non-recurring) spending pace ---
