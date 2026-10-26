@@ -29,7 +29,7 @@
           <i class="pi pi-chart-line text-lg" /> <span>Savings Goals</span>
         </NuxtLink>
         <NuxtLink @click="isMobileMenuOpen = false" to="/subscriptions" class="flex items-center gap-3 px-4 py-3 rounded-xl text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors font-medium" active-class="!bg-purple-50 !text-purple-600 dark:!bg-purple-900/30 dark:!text-purple-400">
-          <i class="pi pi-calendar-clock text-lg"></i> <span>Subscriptions</span>
+          <i class="pi pi-calendar-clock text-lg"></i> <span>Recurring</span>
         </NuxtLink>
         <NuxtLink @click="isMobileMenuOpen = false" to="/advisor" class="flex items-center gap-3 px-4 py-3 rounded-xl text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors font-medium" active-class="!bg-purple-50 !text-purple-600 dark:!bg-purple-900/30 dark:!text-purple-400">
           <i class="pi pi-sparkles text-lg"></i> <span>AI Advisor</span>

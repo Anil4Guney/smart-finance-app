@@ -23,6 +23,7 @@ from .serializers import (
 )
 from .services import analyze_receipt
 from .billing import bill_due_subscriptions
+from .forecast import monthly_forecast
 
 logger = logging.getLogger(__name__)
 
@@ -178,7 +179,8 @@ class AIChatView(APIView):
         # Kullanıcının tüm finansal bağlamını (Context) veritabanından çekiyoruz
         transactions = Transaction.objects.filter(user=user)
         budgets = CategoryBudget.objects.filter(user=user)
-        subscriptions = Subscription.objects.filter(user=user)
+        subscriptions = Subscription.objects.filter(user=user, is_active=True)
+        forecast = monthly_forecast(user)
 
         total_income = sum(float(t.amount) for t in transactions if t.transaction_type == 'INCOME')
         total_expense = sum(float(t.amount) for t in transactions if t.transaction_type == 'EXPENSE')
@@ -186,7 +188,11 @@ class AIChatView(APIView):
         # Yapay zekaya göndermek için verileri kısa özet metinlere çeviriyoruz
         tx_details = ", ".join([f"{t.category}: ${t.amount}" for t in transactions[:15]])
         budget_details = ", ".join([f"{b.category}: ${b.limit_amount}" for b in budgets])
-        sub_details = ", ".join([f"{s.name}: ${s.amount}" for s in subscriptions])
+        def describe(s):
+            sign = "+" if s.transaction_type == "INCOME" else "-"
+            extra = f", {s.remaining_installments} taksit kaldı" if s.total_installments else ""
+            return f"{s.name} ({s.get_kind_display()}, her ayın {s.billing_day or s.due_date.day}. günü): {sign}${s.amount}{extra}"
+        sub_details = "; ".join(describe(s) for s in subscriptions)
 
         # SENİN ORİJİNAL SİSTEM PROMPT'UN
         system_prompt = f"""
@@ -198,7 +204,8 @@ class AIChatView(APIView):
         - Toplam Gider: ${total_expense}
         - Son Harcamaları: {tx_details if tx_details else 'Henüz harcama yok'}
         - Belirlediği Bütçe Limitleri: {budget_details if budget_details else 'Henüz limit yok'}
-        - Yaklaşan Abonelikleri: {sub_details if sub_details else 'Abonelik yok'}
+        - Her Ay Tekrarlayan Gelir/Giderleri: {sub_details if sub_details else 'Tanımlı değil'}
+        - Bu Ayın Sonu Tahmini: tahmini gelir ${forecast['projected_income']}, tahmini gider ${forecast['projected_expense']}, ay sonu net ${forecast['projected_net']}, ay sonuna {forecast['days_left']} gün var, günlük güvenli harcama ${forecast['safe_daily_spend']}
 
         Kullanıcı sana aşağıdaki soruyu sordu. 
         Soru kendi harcamaları, bütçeleri veya abonelikleriyle ilgiliyse yukarıdaki verileri kullanarak net ve doğru cevap ver.
@@ -227,3 +234,14 @@ class AIChatView(APIView):
         except Exception:
             logger.exception("AI chat request failed")
             return Response({"error": "The AI assistant is unavailable right now. Please try again later."}, status=502)
+
+# --- AY SONU TAHMİNİ ---
+
+class ForecastView(APIView):
+    """Month-end forecast for the dashboard (see finance/forecast.py)."""
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        # Make sure today's due recurring items are recorded before forecasting
+        bill_due_subscriptions(user=request.user)
+        return Response(monthly_forecast(request.user))

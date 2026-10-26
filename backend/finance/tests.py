@@ -9,12 +9,13 @@ from django.test import TestCase
 from rest_framework.test import APIClient
 
 from .billing import bill_due_subscriptions, next_due_date
+from .forecast import monthly_forecast
 from .models import CategoryBudget, Subscription, Transaction
 
 
 def make_subscription(user, due, created=date(2026, 1, 1), **extra):
     sub = Subscription.objects.create(
-        user=user, name='Netflix', amount=Decimal('9.99'), due_date=due,
+        user=user, name='Netflix', amount=extra.pop('amount', Decimal('9.99')), due_date=due,
         billing_day=extra.pop('billing_day', due.day), **extra,
     )
     # created_at is auto_now_add; set it explicitly for predictable tests
@@ -52,7 +53,9 @@ class BillingTests(TestCase):
         self.assertEqual(sub.due_date, date(2026, 4, 10))
         self.assertEqual(sub.last_billed_date, date(2026, 3, 10))
         tx = Transaction.objects.get(user=self.user)
-        self.assertEqual(tx.title, 'Auto-Pay: Netflix')
+        self.assertEqual(tx.title, 'Netflix')
+        self.assertEqual(tx.recurring, sub)
+        self.assertEqual(tx.category, 'Bills')
         self.assertEqual(tx.date, date(2026, 3, 10))
         self.assertEqual(tx.transaction_type, 'EXPENSE')
 
@@ -191,3 +194,123 @@ class AiEndpointLimitsTests(ApiTestCase):
         finally:
             AIChatThrottle.THROTTLE_RATES = original
         self.assertEqual(codes, [400, 400, 429])
+
+
+class RecurringIncomeAndInstallmentTests(TestCase):
+    def setUp(self):
+        self.user = User.objects.create_user('ali', password='S3cure-pass-123')
+
+    def test_salary_creates_income(self):
+        make_subscription(self.user, date(2026, 3, 1), kind='SALARY', transaction_type='INCOME')
+        bill_due_subscriptions(today=date(2026, 3, 5))
+        tx = Transaction.objects.get()
+        self.assertEqual(tx.transaction_type, 'INCOME')
+        self.assertEqual(tx.category, 'Salary')
+
+    def test_installments_stop_after_last_payment(self):
+        sub = make_subscription(self.user, date(2026, 1, 10), kind='INSTALLMENT', total_installments=3)
+        self.assertEqual(bill_due_subscriptions(today=date(2026, 6, 30)), 3)
+        titles = list(Transaction.objects.order_by('date').values_list('title', flat=True))
+        self.assertEqual(titles, ['Netflix (1/3)', 'Netflix (2/3)', 'Netflix (3/3)'])
+        sub.refresh_from_db()
+        self.assertEqual(sub.installments_paid, 3)
+        self.assertFalse(sub.is_active)
+        self.assertEqual(sub.category, '')
+        self.assertEqual(Transaction.objects.first().category, 'Installments')
+
+    def test_installments_started_before_signup_count_as_paid(self):
+        # 6 installments from January, added to the app in March -> Jan/Feb already paid elsewhere
+        sub = make_subscription(self.user, date(2026, 1, 15), created=date(2026, 3, 1),
+                                kind='INSTALLMENT', total_installments=6)
+        self.assertEqual(bill_due_subscriptions(today=date(2026, 3, 20)), 1)
+        self.assertEqual(Transaction.objects.get().title, 'Netflix (3/6)')
+        sub.refresh_from_db()
+        self.assertEqual(sub.installments_paid, 3)
+        self.assertEqual(sub.remaining_installments, 3)
+
+    def test_deleting_plan_removes_its_generated_transactions(self):
+        sub = make_subscription(self.user, date(2026, 3, 1))
+        bill_due_subscriptions(today=date(2026, 3, 5))
+        Transaction.objects.create(user=self.user, title='Coffee', amount=3, transaction_type='EXPENSE',
+                                   category='Food', date=date(2026, 3, 5))
+        sub.delete()
+        self.assertEqual(list(Transaction.objects.values_list('title', flat=True)), ['Coffee'])
+
+
+class RecurringApiValidationTests(ApiTestCase):
+    def test_installment_requires_count(self):
+        res = self.client.post('/api/subscriptions/', {
+            'name': 'Phone', 'amount': '2000', 'due_date': '2099-01-10', 'kind': 'INSTALLMENT',
+        }, format='json')
+        self.assertEqual(res.status_code, 400)
+        self.assertIn('total_installments', res.data)
+
+    def test_salary_is_always_income(self):
+        res = self.client.post('/api/subscriptions/', {
+            'name': 'Maaş', 'amount': '1500', 'due_date': '2099-01-01', 'kind': 'SALARY',
+            'transaction_type': 'EXPENSE',
+        }, format='json')
+        self.assertEqual(res.status_code, 201)
+        self.assertEqual(res.data['transaction_type'], 'INCOME')
+        self.assertEqual(res.data['effective_category'], 'Salary')
+
+    def test_installment_plan_returns_remaining(self):
+        res = self.client.post('/api/subscriptions/', {
+            'name': 'Phone', 'amount': '2000', 'due_date': '2099-01-10', 'kind': 'INSTALLMENT',
+            'total_installments': 6,
+        }, format='json')
+        self.assertEqual(res.status_code, 201)
+        self.assertEqual(res.data['remaining_installments'], 6)
+
+
+class ForecastTests(TestCase):
+    def setUp(self):
+        self.user = User.objects.create_user('ali', password='S3cure-pass-123')
+
+    def add_tx(self, day, amount, tx_type='EXPENSE', month=3):
+        Transaction.objects.create(user=self.user, title='x', amount=Decimal(amount),
+                                   transaction_type=tx_type, category='Food', date=date(2026, month, day))
+
+    def test_forecast_combines_recorded_upcoming_and_everyday_spending(self):
+        today = date(2026, 3, 10)  # 31-day month -> 21 days left
+        self.add_tx(1, '1000', 'INCOME')
+        self.add_tx(5, '100')  # everyday spending: 100 in 10 days = 10/day, no history
+        make_subscription(self.user, date(2026, 3, 25), kind='SALARY', transaction_type='INCOME',
+                          amount=Decimal('500'))
+        make_subscription(self.user, date(2026, 3, 20), kind='RENT', amount=Decimal('300'))
+        make_subscription(self.user, date(2026, 4, 2), kind='BILL', amount=Decimal('50'))  # next month
+
+        f = monthly_forecast(self.user, today=today)
+        self.assertEqual(f['method'], 'this_month')
+        self.assertEqual(f['upcoming_income'], 500.0)
+        self.assertEqual(f['upcoming_expense'], 300.0)
+        self.assertEqual(f['expected_variable_spending'], 210.0)  # 10/day * 21 days
+        self.assertEqual(f['projected_income'], 1500.0)
+        self.assertEqual(f['projected_expense'], 610.0)
+        self.assertEqual(f['projected_net'], 890.0)
+        # (1000 + 500 - 100 - 300) / 22 days (today included)
+        self.assertEqual(f['safe_daily_spend'], 50.0)
+        self.assertEqual([u['name'] for u in f['upcoming']], ['Netflix', 'Netflix'])
+        self.assertTrue(f['has_recurring_income'])
+
+    def test_finished_installments_are_not_forecast(self):
+        sub = make_subscription(self.user, date(2026, 3, 20), kind='INSTALLMENT', total_installments=2)
+        Subscription.objects.filter(pk=sub.pk).update(installments_paid=2)
+        f = monthly_forecast(self.user, today=date(2026, 3, 10))
+        self.assertEqual(f['upcoming'], [])
+
+    def test_history_is_used_early_in_the_month(self):
+        # 900 of everyday spending over the previous 90 days = 10/day, nothing yet this month
+        Transaction.objects.create(user=self.user, title='old', amount=Decimal('900'),
+                                   transaction_type='EXPENSE', category='Food', date=date(2025, 12, 1))
+        f = monthly_forecast(self.user, today=date(2026, 3, 1))
+        self.assertEqual(f['method'], 'blended')
+        self.assertGreater(f['expected_variable_spending'], 0)
+
+    def test_endpoint(self):
+        client = APIClient()
+        client.force_authenticate(self.user)
+        res = client.get('/api/forecast/')
+        self.assertEqual(res.status_code, 200)
+        self.assertIn('projected_net', res.data)
+        self.assertEqual(APIClient().get('/api/forecast/').status_code, 401)

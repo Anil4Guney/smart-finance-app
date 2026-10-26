@@ -8,6 +8,7 @@ from .views import (
     CategoryBudgetViewSet, 
     SubscriptionViewSet,
     AIChatView,
+    ForecastView,
     scan_receipt
 )
 
@@ -25,4 +26,5 @@ urlpatterns = [
     # Özel yollar (View ve API_View'ler)
     path('chat/', AIChatView.as_view(), name='ai-chat'), # Yeni Chatbot linkimiz! (Frontend'deki /chat/ isteğini karşılar)
     path('scan-receipt/', scan_receipt, name='scan-receipt'), # Fiş tarama AI linki
+    path('forecast/', ForecastView.as_view(), name='forecast'), # Ay sonu tahmini
 ]

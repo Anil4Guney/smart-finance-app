@@ -74,6 +74,63 @@
       </div>
     </div>
 
+    <!-- Month-end forecast -->
+    <div v-if="forecast" class="card p-6 md:p-8 rounded-3xl shadow-sm bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 transition-colors duration-300 mb-8">
+      <div class="flex flex-wrap items-center justify-between gap-2 mb-6">
+        <div class="flex items-center gap-3">
+          <div class="p-2 rounded-lg bg-purple-50 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400">
+            <i class="pi pi-chart-line text-xl"></i>
+          </div>
+          <div>
+            <h3 class="text-xl font-bold text-gray-900 dark:text-white">Month-end Forecast</h3>
+            <p class="text-sm text-gray-500 dark:text-gray-400">{{ forecastMonthName }} · {{ forecast.days_left }} day(s) left</p>
+          </div>
+        </div>
+        <NuxtLink v-if="!forecast.has_recurring_income" to="/subscriptions" class="text-sm font-semibold text-purple-600 dark:text-purple-400 hover:underline">
+          <i class="pi pi-plus-circle mr-1"></i>Add your salary for a better forecast
+        </NuxtLink>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+        <div class="rounded-2xl p-6 flex flex-col justify-between"
+          :class="forecast.projected_net >= 0 ? 'bg-emerald-50 dark:bg-emerald-900/20' : 'bg-red-50 dark:bg-red-900/20'">
+          <p class="text-sm font-medium text-gray-600 dark:text-gray-300">Expected at the end of the month</p>
+          <p class="text-4xl font-extrabold tracking-tight my-3"
+            :class="forecast.projected_net >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'">
+            {{ forecast.projected_net >= 0 ? '+' : '' }}{{ formatCurrency(forecast.projected_net) }}
+          </p>
+          <p class="text-sm text-gray-600 dark:text-gray-300">
+            <i class="pi pi-shopping-bag mr-1"></i>
+            Safe to spend: <span class="font-bold">{{ formatCurrency(forecast.safe_daily_spend) }}</span> / day
+          </p>
+        </div>
+
+        <div class="flex flex-col gap-3 text-sm [&>div]:gap-3 [&>div>span:last-child]:whitespace-nowrap">
+          <div class="flex justify-between"><span class="text-gray-500 dark:text-gray-400">Income so far</span><span class="font-semibold text-gray-900 dark:text-white">{{ formatCurrency(forecast.income_so_far) }}</span></div>
+          <div class="flex justify-between"><span class="text-gray-500 dark:text-gray-400">Recurring income to come</span><span class="font-semibold text-emerald-600 dark:text-emerald-400">+{{ formatCurrency(forecast.upcoming_income) }}</span></div>
+          <div class="flex justify-between"><span class="text-gray-500 dark:text-gray-400">Spent so far</span><span class="font-semibold text-gray-900 dark:text-white">−{{ formatCurrency(forecast.expense_so_far) }}</span></div>
+          <div class="flex justify-between"><span class="text-gray-500 dark:text-gray-400">Fixed payments to come</span><span class="font-semibold text-gray-900 dark:text-white">−{{ formatCurrency(forecast.upcoming_expense) }}</span></div>
+          <div class="flex justify-between"><span class="text-gray-500 dark:text-gray-400" title="Based on your everyday spending pace">Expected everyday spending <i class="pi pi-info-circle text-xs"></i></span><span class="font-semibold text-gray-900 dark:text-white">−{{ formatCurrency(forecast.expected_variable_spending) }}</span></div>
+          <div class="flex justify-between pt-3 border-t border-gray-100 dark:border-gray-700"><span class="font-bold text-gray-700 dark:text-gray-200">Month-end result</span><span class="font-extrabold" :class="forecast.projected_net >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'">{{ formatCurrency(forecast.projected_net) }}</span></div>
+        </div>
+
+        <div class="md:col-span-2 xl:col-span-1">
+          <p class="text-sm font-bold text-gray-700 dark:text-gray-200 mb-3">Coming up this month</p>
+          <div v-if="forecast.upcoming.length === 0" class="text-sm text-gray-500 dark:text-gray-400">No more recurring items this month.</div>
+          <div v-for="item in forecast.upcoming.slice(0, 4)" :key="`${item.id}-${item.date}`" class="flex items-center justify-between gap-2 py-2 text-sm">
+            <div class="flex items-center gap-2 min-w-0">
+              <i :class="['pi', kindIcon(item.kind), 'text-gray-400']"></i>
+              <span class="truncate text-gray-800 dark:text-gray-200">{{ item.name }}</span>
+              <span class="text-xs text-gray-400 shrink-0">{{ shortDate(item.date) }}</span>
+            </div>
+            <span class="font-semibold shrink-0" :class="item.transaction_type === 'INCOME' ? 'text-emerald-600 dark:text-emerald-400' : 'text-gray-900 dark:text-white'">
+              {{ item.transaction_type === 'INCOME' ? '+' : '−' }}{{ formatCurrency(item.amount) }}
+            </span>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <div class="card p-6 rounded-3xl shadow-sm bg-white dark:bg-gray-800 transition-colors duration-300 mb-8">
       <div class="flex items-center justify-between mb-6 border-b pb-3 border-gray-100 dark:border-gray-700">
         <h3 class="text-xl font-bold text-gray-900 dark:text-white transition-colors duration-300">
@@ -143,30 +200,30 @@
 
       <div class="card p-6 rounded-3xl shadow-sm bg-white dark:bg-gray-800 transition-colors duration-300 flex flex-col h-full">
         <div class="flex items-center justify-between mb-6 border-b pb-3 border-gray-100 dark:border-gray-700">
-          <h3 class="text-xl font-bold text-gray-900 dark:text-white transition-colors duration-300">Upcoming Bills</h3>
-          <Button icon="pi pi-plus" rounded text severity="secondary" v-tooltip.top="'Add Bill'" @click="$router.push('/subscriptions')" />
+          <h3 class="text-xl font-bold text-gray-900 dark:text-white transition-colors duration-300">Upcoming</h3>
+          <Button icon="pi pi-plus" rounded text severity="secondary" v-tooltip.top="'Add recurring item'" @click="$router.push('/subscriptions')" />
         </div>
 
         <div class="flex-1 flex flex-col gap-4">
-          <div v-if="subscriptions.length === 0" class="text-center text-gray-500 py-8">No upcoming bills!</div>
-          
-          <div v-for="sub in subscriptions.slice(0, 3)" :key="sub.id" class="flex items-center justify-between p-3 hover:bg-gray-50 dark:hover:bg-gray-700/50 rounded-xl transition-colors border border-transparent dark:hover:border-gray-600">
+          <div v-if="upcomingItems.length === 0" class="text-center text-gray-500 py-8">Nothing scheduled yet.</div>
+
+          <div v-for="sub in upcomingItems" :key="sub.id" class="flex items-center justify-between p-3 hover:bg-gray-50 dark:hover:bg-gray-700/50 rounded-xl transition-colors border border-transparent dark:hover:border-gray-600">
             <div class="flex items-center gap-4">
               <div class="w-10 h-10 rounded-full flex items-center justify-center text-lg" :class="sub.colorClass">
                 <i :class="['pi', sub.icon]"></i>
               </div>
               <div>
                 <p class="font-bold text-gray-900 dark:text-white">{{ sub.name }}</p>
-                <p class="text-xs font-bold" :class="getDaysLeft(sub.dueDate) <= 1 ? 'text-red-500' : 'text-gray-500 dark:text-gray-400'">
+                <p class="text-xs font-bold" :class="sub.transactionType === 'EXPENSE' && getDaysLeft(sub.dueDate) <= 1 ? 'text-red-500' : 'text-gray-500 dark:text-gray-400'">
                   {{ getRelativeDateString(sub.dueDate) }}
                 </p>
               </div>
             </div>
-            <span class="font-bold text-gray-900 dark:text-white">{{ formatCurrency(sub.amount) }}</span>
+            <span class="font-bold" :class="sub.transactionType === 'INCOME' ? 'text-emerald-600 dark:text-emerald-400' : 'text-gray-900 dark:text-white'">{{ sub.transactionType === 'INCOME' ? '+' : '' }}{{ formatCurrency(sub.amount) }}</span>
           </div>
         </div>
 
-        <Button label="View All Subscriptions" class="w-full mt-4 p-button-outlined p-button-secondary font-bold" @click="$router.push('/subscriptions')" />
+        <Button label="View All Recurring" class="w-full mt-4 p-button-outlined p-button-secondary font-bold" @click="$router.push('/subscriptions')" />
       </div>
     </div>
 
@@ -207,7 +264,7 @@ import ProgressBar from 'primevue/progressbar'
 import Button from 'primevue/button'
 import { useCurrency } from '~/composables/useCurrency'
 import { useAuth } from '~/composables/useAuth'
-import { useSubscriptions } from '~/composables/useSubscriptions'
+import { useSubscriptions, RECURRING_KINDS } from '~/composables/useSubscriptions'
 
 definePageMeta({ layout: 'default' })
 
@@ -218,7 +275,7 @@ const { formatCurrency } = useCurrency()
 
 const { loadSubscriptions, subscriptions, getDaysLeft, getRelativeDateString } = useSubscriptions()
 
-const { data } = await useFetch(`${API_BASE}/transactions/`, {
+const { data, refresh: refreshTransactions } = await useFetch(`${API_BASE}/transactions/`, {
   headers: { Authorization: computed(() => `Bearer ${token.value}`) },
 })
 const transactions = computed(() => (data.value && Array.isArray(data.value) ? data.value : []))
@@ -227,8 +284,35 @@ const savedBudgets = ref<Record<string, number>>({})
 
 const { fetchBudgets } = useBudgets()
 
+// --- Month-end forecast ---
+const forecast = ref<any | null>(null)
+const loadForecast = async () => {
+  try {
+    forecast.value = await $fetch(`${API_BASE}/forecast/`, {
+      headers: { Authorization: `Bearer ${token.value}` },
+    })
+  } catch (error) {
+    console.error('Forecast could not be loaded:', error)
+  }
+}
+const forecastMonthName = computed(() => {
+  if (!forecast.value) return ''
+  const [y, m] = forecast.value.month.split('-').map(Number)
+  return new Date(y, m - 1, 1).toLocaleDateString(undefined, { month: 'long', year: 'numeric' })
+})
+const shortDate = (iso: string) => fromApiDate(iso).toLocaleDateString(undefined, { day: 'numeric', month: 'short' })
+const kindIcon = (kind: string) => RECURRING_KINDS[kind as keyof typeof RECURRING_KINDS]?.icon || 'pi-replay'
+
+const upcomingItems = computed(() => [...subscriptions.value]
+  .filter(s => s.isActive)
+  .sort((a, b) => a.dueDate.getTime() - b.dueDate.getTime())
+  .slice(0, 4))
+
 onMounted(async () => {
+  // Forecast first: it also records recurring items that are due today
+  await loadForecast()
   loadSubscriptions()
+  refreshTransactions()
   try {
     savedBudgets.value = await fetchBudgets()
   } catch (error) {

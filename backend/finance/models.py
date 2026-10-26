@@ -21,6 +21,11 @@ class Transaction(models.Model):
     date = models.DateField()
     category = models.CharField(max_length=100)
     description = models.TextField(blank=True)
+    # Set when the transaction was created automatically by a recurring plan
+    recurring = models.ForeignKey(
+        'Subscription', null=True, blank=True, on_delete=models.SET_NULL,
+        related_name='generated_transactions',
+    )
 
     class Meta:
         ordering = ['-date', '-id']
@@ -64,11 +69,44 @@ class CategoryBudget(models.Model):
 
 
 class Subscription(models.Model):
-    """Recurring bills and subscriptions with auto-billing logic."""
-    
+    """
+    A recurring monthly income or expense: salary, rent, bills, subscriptions
+    and installment plans. Due amounts are turned into Transactions
+    automatically (see finance/billing.py).
+    """
+
+    class Kind(models.TextChoices):
+        SUBSCRIPTION = 'SUBSCRIPTION', 'Subscription'
+        BILL = 'BILL', 'Bill'
+        RENT = 'RENT', 'Rent'
+        SALARY = 'SALARY', 'Salary'
+        INSTALLMENT = 'INSTALLMENT', 'Installment'
+        OTHER = 'OTHER', 'Other'
+
+    # Category used for generated transactions when none is given
+    DEFAULT_CATEGORY = {
+        Kind.SUBSCRIPTION: 'Bills',
+        Kind.BILL: 'Bills',
+        Kind.RENT: 'Rent',
+        Kind.SALARY: 'Salary',
+        Kind.INSTALLMENT: 'Installments',
+        Kind.OTHER: 'Other',
+    }
+
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='subscriptions')
     name = models.CharField(max_length=255)
     amount = models.DecimalField(max_digits=10, decimal_places=2)
+    transaction_type = models.CharField(
+        max_length=7,
+        choices=Transaction.TransactionType.choices,
+        default=Transaction.TransactionType.EXPENSE,
+    )
+    kind = models.CharField(max_length=12, choices=Kind.choices, default=Kind.SUBSCRIPTION)
+    category = models.CharField(max_length=100, blank=True)
+    # Installment plans: number of monthly payments in total and how many are done.
+    # The plan switches itself off after the last one.
+    total_installments = models.PositiveSmallIntegerField(null=True, blank=True)
+    installments_paid = models.PositiveSmallIntegerField(default=0)
     # Next payment date. Moved forward one month each time the bill is paid.
     due_date = models.DateField()
     # Day of month the bill is due (1-31). Kept separately so a bill on the 31st
@@ -91,10 +129,21 @@ class Subscription(models.Model):
     def __str__(self):
         return f"{self.name} - {self.amount} (Day: {self.due_date.day})"
 
-    # --- 🗑️ SİLME MANTIĞI: Abonelik silinince Transactions'taki Auto-Pay kayıtlarını da siler ---
+    @property
+    def effective_category(self):
+        return self.category or self.DEFAULT_CATEGORY.get(self.kind, 'Other')
+
+    @property
+    def remaining_installments(self):
+        if not self.total_installments:
+            return None
+        return max(self.total_installments - self.installments_paid, 0)
+
+    # --- 🗑️ SİLME MANTIĞI: Plan silinince otomatik oluşturduğu işlemleri de siler ---
     def delete(self, *args, **kwargs):
+        Transaction.objects.filter(recurring=self).delete()
+        # Records created before transactions were linked to their plan
         Transaction.objects.filter(
-            user=self.user, 
-            title=f"Auto-Pay: {self.name}"
+            user=self.user, recurring__isnull=True, title=f"Auto-Pay: {self.name}"
         ).delete()
         super(Subscription, self).delete(*args, **kwargs)
