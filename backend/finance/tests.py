@@ -314,3 +314,14 @@ class ForecastTests(TestCase):
         self.assertEqual(res.status_code, 200)
         self.assertIn('projected_net', res.data)
         self.assertEqual(APIClient().get('/api/forecast/').status_code, 401)
+
+
+class AiErrorMessageTests(TestCase):
+    def test_known_gemini_errors_get_clear_messages(self):
+        from google.api_core import exceptions as google_errors
+        from .services import describe_ai_error
+
+        self.assertIn('usage limit', describe_ai_error(google_errors.ResourceExhausted('quota'))[1])
+        self.assertIn('GEMINI_API_KEY', describe_ai_error(google_errors.PermissionDenied('API key expired'))[1])
+        self.assertIn('GEMINI_MODEL', describe_ai_error(google_errors.NotFound('model gone'))[1])
+        self.assertEqual(describe_ai_error(RuntimeError('boom'), fallback='x'), (502, 'x'))

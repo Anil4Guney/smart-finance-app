@@ -21,7 +21,7 @@ from .serializers import (
     CategoryBudgetSerializer, 
     SubscriptionSerializer
 )
-from .services import analyze_receipt
+from .services import analyze_receipt, describe_ai_error
 from .billing import bill_due_subscriptions
 from .forecast import monthly_forecast
 
@@ -152,12 +152,10 @@ def scan_receipt(request: Request) -> Response:
     try:
         data = analyze_receipt(image)
         return Response(data)
-    except ValueError as e:
-        # Missing API key or unreadable AI response
-        return Response({"detail": str(e)}, status=502)
-    except Exception:
+    except Exception as exc:
         logger.exception("Receipt analysis failed")
-        return Response({"detail": "Receipt analysis failed. Please try another photo."}, status=502)
+        status_code, message = describe_ai_error(exc, fallback="Receipt analysis failed. Please try another photo.")
+        return Response({"detail": message}, status=status_code)
 
 
 # --- SENİN ORİJİNAL PROMPT'LARINLA YAPAY ZEKA SOHBET ASİSTANI ---
@@ -185,13 +183,20 @@ class AIChatView(APIView):
         total_income = sum(float(t.amount) for t in transactions if t.transaction_type == 'INCOME')
         total_expense = sum(float(t.amount) for t in transactions if t.transaction_type == 'EXPENSE')
 
-        # Yapay zekaya göndermek için verileri kısa özet metinlere çeviriyoruz
-        tx_details = ", ".join([f"{t.category}: ${t.amount}" for t in transactions[:15]])
+        # Yapay zekaya göndermek için verileri tarihli, kısa özet metinlere çeviriyoruz
+        def sign(tx_type):
+            return "+" if tx_type == "INCOME" else "-"
+
+        tx_details = "; ".join(
+            f"{t.date:%d.%m.%Y} {t.title} ({t.category}): {sign(t.transaction_type)}${t.amount}"
+            for t in transactions[:15]
+        )
         budget_details = ", ".join([f"{b.category}: ${b.limit_amount}" for b in budgets])
+
         def describe(s):
-            sign = "+" if s.transaction_type == "INCOME" else "-"
             extra = f", {s.remaining_installments} taksit kaldı" if s.total_installments else ""
-            return f"{s.name} ({s.get_kind_display()}, her ayın {s.billing_day or s.due_date.day}. günü): {sign}${s.amount}{extra}"
+            return (f"{s.name} ({s.get_kind_display()}): {sign(s.transaction_type)}${s.amount} her ay, "
+                    f"sonraki tarih {s.due_date:%d.%m.%Y}{extra}")
         sub_details = "; ".join(describe(s) for s in subscriptions)
 
         # SENİN ORİJİNAL SİSTEM PROMPT'UN
@@ -199,16 +204,19 @@ class AIChatView(APIView):
         Sen 'SmartFinance' uygulaması için çalışan uzman, samimi ve zeki bir finansal yapay zeka asistanısın.
         Kullanıcının adı: {user.first_name or user.username}.
 
+        Bugünün tarihi: {forecast['today']}. Tüm tutarlar USD cinsindendir.
+
         Kullanıcının Güncel Finansal Durumu:
-        - Toplam Gelir: ${total_income}
-        - Toplam Gider: ${total_expense}
-        - Son Harcamaları: {tx_details if tx_details else 'Henüz harcama yok'}
+        - Bu ay şimdiye kadar: gelir ${forecast['income_so_far']}, gider ${forecast['expense_so_far']}
+        - Tüm zamanların toplamı: gelir ${total_income}, gider ${total_expense}
+        - Son İşlemleri (tarihli): {tx_details if tx_details else 'Henüz işlem yok'}
         - Belirlediği Bütçe Limitleri: {budget_details if budget_details else 'Henüz limit yok'}
         - Her Ay Tekrarlayan Gelir/Giderleri: {sub_details if sub_details else 'Tanımlı değil'}
-        - Bu Ayın Sonu Tahmini: tahmini gelir ${forecast['projected_income']}, tahmini gider ${forecast['projected_expense']}, ay sonu net ${forecast['projected_net']}, ay sonuna {forecast['days_left']} gün var, günlük güvenli harcama ${forecast['safe_daily_spend']}
+        - Bu Ayın Sonu Tahmini (sadece bu ayın tarihlerini kapsar): tahmini gelir ${forecast['projected_income']}, tahmini gider ${forecast['projected_expense']}, ay sonu net ${forecast['projected_net']}, ay sonuna {forecast['days_left']} gün var, günlük güvenli harcama ${forecast['safe_daily_spend']}
 
         Kullanıcı sana aşağıdaki soruyu sordu. 
         Soru kendi harcamaları, bütçeleri veya abonelikleriyle ilgiliyse yukarıdaki verileri kullanarak net ve doğru cevap ver.
+        Tarihlere dikkat et: başka aya ait işlemleri bu ayın harcaması gibi gösterme, sonraki tarihi bu aydan sonra olan gelirleri bu aya sayma.
         Eğer genel bir finans/yatırım sorusuysa, güncel bilgilere dayanarak profesyonel bir tavsiye ver. 
         Konuşma dilin doğal, okuması kolay olsun ve uygun yerlerde emoji kullan.
         ASLA JSON formatı döndürme. Markdown kullanma (yıldız, diyez yok); düz metin ve gerekirse "- " ile başlayan maddeler yaz.
@@ -231,9 +239,10 @@ class AIChatView(APIView):
             # Frontend'e "reply" objesi içinde düz metin dönüyoruz
             return Response({"reply": response.text})
             
-        except Exception:
+        except Exception as exc:
             logger.exception("AI chat request failed")
-            return Response({"error": "The AI assistant is unavailable right now. Please try again later."}, status=502)
+            status_code, message = describe_ai_error(exc)
+            return Response({"error": message}, status=status_code)
 
 # --- AY SONU TAHMİNİ ---
 
