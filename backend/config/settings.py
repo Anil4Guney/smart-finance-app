@@ -65,6 +65,8 @@ AI_DAILY_CALL_LIMIT = int(os.environ.get('AI_DAILY_CALL_LIMIT', '2000'))
 
 # Largest receipt image accepted by /api/scan-receipt/ (bytes).
 MAX_RECEIPT_UPLOAD_BYTES = 5 * 1024 * 1024
+# No request of any kind may be bigger than this (a receipt plus form overhead)
+MAX_REQUEST_BYTES = 7 * 1024 * 1024
 
 INSTALLED_APPS = [
     'django.contrib.admin',
@@ -88,6 +90,8 @@ MIDDLEWARE = [
     'whitenoise.middleware.WhiteNoiseMiddleware',  # serves the admin's static files in production
     'django.contrib.sessions.middleware.SessionMiddleware',
     'corsheaders.middleware.CorsMiddleware',
+    'finance.middleware.RequestSizeLimitMiddleware',
+    'finance.middleware.NoStoreMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
@@ -192,11 +196,19 @@ DJOSER = {
 }
 
 # --- CORS: only these front-end origins may call the API ---
+# Production allows only the real front end; localhost origins are added for development only
 CORS_ALLOWED_ORIGINS = env_list(
     'CORS_ALLOWED_ORIGINS',
-    'http://localhost:3000,http://127.0.0.1:3000,https://smart-finance-app-kohl.vercel.app',
+    'https://smart-finance-app-kohl.vercel.app'
+    + (',http://localhost:3000,http://127.0.0.1:3000' if DEBUG else ''),
 )
 CSRF_TRUSTED_ORIGINS = CORS_ALLOWED_ORIGINS
+
+# Address of the Django admin. Moving it off /admin/ keeps bots from hammering the login page
+# (set DJANGO_ADMIN_URL=some-secret-path/ in production). The admin is for you only.
+ADMIN_URL = os.environ.get('DJANGO_ADMIN_URL', 'admin/').strip().lstrip('/') or 'admin/'
+if not ADMIN_URL.endswith('/'):
+    ADMIN_URL += '/'
 
 # --- Extra hardening when running in production ---
 if not DEBUG:

@@ -78,10 +78,18 @@ Hepsi `backend/.env.example` dosyasında açıklanmıştır. Üretimde **şunlar
   gerçek kullanıcılar gelmeden **ücretli (faturalandırmalı) Gemini planına** geçmeyi veya politikadaki ifadeyi buna göre güncellemeyi düşün.
 - `npm audit` hâlâ 7 uyarı gösterir; hepsi Nuxt 4'e geçişle kapanır (geliştirme araçlarındadır, canlı uygulamayı etkilemez).
 
+## Güvenlik testi
+
+`backend/tools/security_probe.py` canlı sunucuya benzer şekilde (yerelde) başlattığın arka yüze saldırgan gibi 72 deneme yapar
+(sahte token, başka kullanıcının verisi, CORS, enjeksiyon, büyük dosya, şifre tahmini...). Her yayından önce çalıştır; kullanımı dosyanın başında yazar.
+`cd backend && python manage.py test finance` ise 70 birim testini çalıştırır.
+
 ## Güvenlik özeti
 
 - Kısa ömürlü (30 dk) erişim anahtarı + dönen yenileme anahtarı; çıkışta sunucuda geçersiz kılınır
 - Girişte kullanıcı adı başına deneme sınırı; yapay zekâ uç noktalarında kullanıcı başına ve günlük toplam sınır
+- Yapay zekâya yalnızca isteyen kullanıcının kendi verisi gönderilir; talimat sızdırma ve "önceki talimatları unut" saldırılarına karşı kurallar var
+- API yanıtları önbelleğe alınmaz; 7 MB'tan büyük istekler en başta reddedilir; yönetim paneli adresi `DJANGO_ADMIN_URL` ile gizlenebilir
 - Her kullanıcı yalnızca kendi verisine erişir; hesap silme tüm verileri siler
 - HTTPS zorunlu (HSTS), CORS yalnızca kendi ön yüz adresine açık
 - Ön yüzde güvenlik başlıkları (CSP, X-Frame-Options, nosniff, Permissions-Policy)

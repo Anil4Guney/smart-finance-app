@@ -1,7 +1,9 @@
 import random
+import secrets
 from datetime import timedelta
 
-from django.core.management.base import BaseCommand
+from django.conf import settings
+from django.core.management.base import BaseCommand, CommandError
 from django.utils import timezone
 from django.contrib.auth.models import User
 
@@ -20,17 +22,22 @@ class Command(BaseCommand):
         )
 
     def handle(self, *args, **options):
+        # Never on a live site: it creates an account and wipes that user's data
+        if not settings.DEBUG:
+            raise CommandError('seed_data sadece geliştirmede çalışır (DJANGO_DEBUG=True).')
+
         username = options['username']
-        
+
         # Get or create user
         user, created = User.objects.get_or_create(
             username=username,
             defaults={'email': f'{username}@example.com'}
         )
         if created:
-            user.set_password('testpass123')
+            password = secrets.token_urlsafe(12)  # random, shown once
+            user.set_password(password)
             user.save()
-            self.stdout.write(self.style.SUCCESS(f"Created user: {username}"))
+            self.stdout.write(self.style.SUCCESS(f"Created user: {username}  (password: {password})"))
 
         self.stdout.write(f"Clearing existing finance data for user: {username}...")
         Transaction.objects.filter(user=user).delete()
@@ -69,13 +76,13 @@ class Command(BaseCommand):
         self.stdout.write("Creating sample savings goals...")
         SavingsGoal.objects.create(
             user=user,
-            name="New Mac",
+            title="Yeni bilgisayar",
             target_amount=3000,
             current_amount=750,
         )
         SavingsGoal.objects.create(
             user=user,
-            name="Vacation",
+            title="Tatil",
             target_amount=2000,
             current_amount=500,
         )
