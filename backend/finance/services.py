@@ -46,7 +46,7 @@ def analyze_receipt(image_file) -> dict:
     if image.mode not in ("RGB", "L"):
         image = image.convert("RGB")
 
-    response = model.generate_content([RECEIPT_PROMPT, image])
+    response = model.generate_content([RECEIPT_PROMPT, image], request_options={'timeout': 60})
     text = (response.text or "").strip()
 
     # Remove optional markdown code fence if present

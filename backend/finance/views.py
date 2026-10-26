@@ -231,10 +231,12 @@ class AIChatView(APIView):
                 return Response({"error": "AI service is not configured."}, status=503)
 
             genai.configure(api_key=api_key)
-            model = genai.GenerativeModel(settings.GEMINI_MODEL)
+            model = genai.GenerativeModel(settings.GEMINI_CHAT_MODEL)
             
             # Gemini'a promptu gönderiyoruz
-            response = model.generate_content(system_prompt)
+            response = model.generate_content(
+                system_prompt, request_options={'timeout': settings.AI_CHAT_TIMEOUT_SECONDS}
+            )
             
             # Frontend'e "reply" objesi içinde düz metin dönüyoruz
             return Response({"reply": response.text})

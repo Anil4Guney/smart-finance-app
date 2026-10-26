@@ -1,5 +1,6 @@
 <template>
-  <div class="p-6 max-w-[1400px] mx-auto flex flex-col h-[calc(100vh-4rem)]">
+  <!-- Fills the layout's main area exactly; only the message list scrolls -->
+  <div class="max-w-[1400px] mx-auto flex flex-col h-full min-h-0">
     
     <div class="flex items-center gap-4 mb-6 shrink-0">
       <div class="bg-purple-100 dark:bg-purple-900/40 text-purple-600 dark:text-purple-300 p-3 rounded-2xl transition-colors duration-300 shadow-sm">
@@ -11,13 +12,13 @@
       </div>
     </div>
 
-    <div class="card flex flex-col flex-1 bg-white dark:bg-gray-800 rounded-3xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden transition-colors duration-300 relative">
+    <div class="card flex flex-col flex-1 min-h-0 bg-white dark:bg-gray-800 rounded-3xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden transition-colors duration-300 relative">
       
       <div class="absolute top-0 right-0 w-64 h-64 bg-purple-400 opacity-[0.03] dark:opacity-[0.05] rounded-full blur-3xl -mr-20 -mt-20 pointer-events-none"></div>
 
       <div 
         ref="chatContainer" 
-        class="flex-1 overflow-y-auto p-6 space-y-6 scroll-smooth z-10"
+        class="flex-1 min-h-0 overflow-y-auto overscroll-contain p-4 sm:p-6 space-y-6 scroll-smooth z-10"
       >
         <div 
           v-for="(msg, index) in messages" 
@@ -45,10 +46,11 @@
           <div class="w-8 h-8 shrink-0 rounded-full bg-purple-100 dark:bg-purple-900/50 flex items-center justify-center border border-purple-200 dark:border-purple-800">
             <i class="pi pi-sparkles text-purple-600 dark:text-purple-400 text-xs"></i>
           </div>
-          <div class="p-4 bg-gray-100 dark:bg-gray-700/60 rounded-2xl rounded-bl-none shadow-sm border border-gray-200 dark:border-gray-600 flex gap-1.5 items-center h-[52px]">
+          <div class="p-4 bg-gray-100 dark:bg-gray-700/60 rounded-2xl rounded-bl-none shadow-sm border border-gray-200 dark:border-gray-600 flex flex-wrap gap-1.5 items-center min-h-[52px]">
             <span class="w-2 h-2 bg-gray-400 dark:bg-gray-500 rounded-full animate-bounce" style="animation-delay: 0ms"></span>
             <span class="w-2 h-2 bg-gray-400 dark:bg-gray-500 rounded-full animate-bounce" style="animation-delay: 150ms"></span>
             <span class="w-2 h-2 bg-gray-400 dark:bg-gray-500 rounded-full animate-bounce" style="animation-delay: 300ms"></span>
+            <span v-if="isSlow" class="ml-2 text-xs text-gray-500 dark:text-gray-400">Still thinking… the AI service is slow right now.</span>
           </div>
         </div>
       </div>
@@ -80,7 +82,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, nextTick, onMounted } from 'vue'
+import { ref, nextTick, onMounted, onBeforeUnmount, watch } from 'vue'
 import { useAuth } from '~/composables/useAuth'
 
 definePageMeta({ layout: 'default' })
@@ -88,20 +90,23 @@ definePageMeta({ layout: 'default' })
 const { user, token } = useAuth()
 const { API_BASE } = useApiBase()
 
-// Kullanıcının adını al (yoksa 'there' kullan)
-const firstName = user.value?.first_name || user.value?.username || 'there'
+// The profile may load after the page; keep the greeting's name up to date
+const greeting = () => {
+  const name = user.value?.first_name || user.value?.username || 'there'
+  return `Hi ${name}! 👋 I'm your SmartFinance AI Assistant.\n\nI can look at your budgets, transactions and recurring payments, or answer general money questions. What would you like to know today?`
+}
 
 // Sohbet Geçmişi State'i
-const messages = ref([
-  { 
-    role: 'ai', 
-    content: `Hi ${firstName}! 👋 I'm your SmartFinance AI Assistant.\n\nI can look at your budgets, transactions and subscriptions, or answer general money questions. What would you like to know today?` 
-  }
-])
+const messages = ref([{ role: 'ai', content: greeting() }])
+watch(user, () => { messages.value[0].content = greeting() })
 
 const userInput = ref('')
 const isTyping = ref(false)
+const isSlow = ref(false) // shows a hint when the AI takes long
+let slowTimer: ReturnType<typeof setTimeout> | undefined
 const chatContainer = ref<HTMLElement | null>(null)
+
+onBeforeUnmount(() => clearTimeout(slowTimer))
 
 // Ekranı otomatik olarak en aşağı kaydıran fonksiyon
 const scrollToBottom = async () => {
@@ -123,6 +128,8 @@ const sendMessage = async () => {
 
   // 2. Yapay Zekayı "Düşünüyor" moduna al
   isTyping.value = true
+  isSlow.value = false
+  slowTimer = setTimeout(() => { isSlow.value = true }, 8000)
   scrollToBottom()
 
   // 3. Soruyu backend'e gönder (Gemini + kullanıcının kendi verileri)
@@ -139,7 +146,9 @@ const sendMessage = async () => {
     if (status === 429) reply = "You've reached the hourly question limit. Please try again a bit later. ⏳"
     messages.value.push({ role: 'ai', content: reply })
   } finally {
+    clearTimeout(slowTimer)
     isTyping.value = false
+    isSlow.value = false
     scrollToBottom()
   }
 }

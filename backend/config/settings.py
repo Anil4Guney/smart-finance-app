@@ -54,6 +54,10 @@ GEMINI_API_KEY = (
 # Gemini model for chat and receipts. 'gemini-flash-latest' always points at Google's
 # current Flash model, so the app keeps working when old versions are retired.
 GEMINI_MODEL = os.environ.get('GEMINI_MODEL', 'gemini-flash-latest')
+# The chat uses the lighter, faster model; receipts keep the more accurate one.
+GEMINI_CHAT_MODEL = os.environ.get('GEMINI_CHAT_MODEL', 'gemini-flash-lite-latest')
+# Give up instead of keeping the user waiting when Gemini is slow
+AI_CHAT_TIMEOUT_SECONDS = int(os.environ.get('AI_CHAT_TIMEOUT_SECONDS', '45'))
 
 # Largest receipt image accepted by /api/scan-receipt/ (bytes).
 MAX_RECEIPT_UPLOAD_BYTES = 5 * 1024 * 1024
