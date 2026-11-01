@@ -710,3 +710,96 @@ class SeedCommandSafetyTests(TestCase):
         user = User.objects.get(username='testuser')
         self.assertFalse(user.check_password('testpass123'))
         self.assertIn('password:', out.getvalue())
+
+
+class EdgeCaseTests(ApiTestCase):
+    def test_brand_new_account_sees_nothing(self):
+        for path in ('/api/transactions/', '/api/subscriptions/', '/api/savings-goals/', '/api/budgets/'):
+            res = self.client.get(path)
+            self.assertEqual(res.status_code, 200, path)
+            self.assertEqual(res.data, [], path)
+        f = self.client.get('/api/forecast/').data
+        for key in ('income_so_far', 'expense_so_far', 'upcoming_income', 'upcoming_expense',
+                    'projected_income', 'projected_expense', 'projected_net', 'safe_daily_spend'):
+            self.assertEqual(f[key], 0, key)
+        self.assertEqual(f['upcoming'], [])
+        self.assertFalse(f['has_recurring_income'])
+
+    def test_two_accounts_never_see_each_others_numbers(self):
+        other = User.objects.create_user('ayse', password='S3cure-pass-123')
+        Transaction.objects.create(user=other, title='x', amount=Decimal('625.25'), transaction_type='EXPENSE',
+                                   category='Food', date=date.today())
+        CategoryBudget.objects.create(user=other, category='Food', limit_amount=300)
+        Subscription.objects.create(user=other, name='Kira', amount=400, due_date=date(2099, 1, 1), billing_day=1)
+        self.assertEqual(self.client.get('/api/transactions/').data, [])
+        self.assertEqual(self.client.get('/api/budgets/').data, [])
+        self.assertEqual(self.client.get('/api/subscriptions/').data, [])
+        self.assertEqual(self.client.get('/api/forecast/').data['expense_so_far'], 0)
+        mine = APIClient()
+        mine.force_authenticate(other)
+        self.assertEqual(len(mine.get('/api/transactions/').data), 1)
+
+    def test_recurring_dates_far_from_today_are_refused(self):
+        for bad in ('1900-01-01', '0001-01-01', '2500-01-01'):
+            res = self.client.post('/api/subscriptions/', {'name': 'x', 'amount': '5', 'due_date': bad}, format='json')
+            self.assertEqual(res.status_code, 400, bad)
+
+    def test_huge_amount_is_accepted_or_refused_cleanly(self):
+        base = {'title': 'x', 'transaction_type': 'INCOME', 'category': 'Salary', 'date': '2026-10-01'}
+        ok = self.client.post('/api/transactions/', {**base, 'amount': '9999999999.99'}, format='json')
+        self.assertEqual(ok.status_code, 201)
+        self.assertEqual(self.client.post('/api/transactions/', {**base, 'amount': '10000000000.00'}, format='json').status_code, 400)
+        self.assertEqual(self.client.get('/api/forecast/').status_code, 200)
+
+
+class MonthBoundaryTests(TestCase):
+    def setUp(self):
+        self.user = User.objects.create_user('ali', password='S3cure-pass-123')
+
+    def test_forecast_on_the_last_day_of_the_month(self):
+        Transaction.objects.create(user=self.user, title='x', amount=Decimal('100'), transaction_type='EXPENSE',
+                                   category='Food', date=date(2026, 10, 31))
+        f = monthly_forecast(self.user, today=date(2026, 10, 31))
+        self.assertEqual(f['days_left'], 0)
+        self.assertEqual(f['expected_variable_spending'], 0)  # nothing left to spend on
+        self.assertEqual(f['projected_expense'], 100.0)
+
+    def test_forecast_on_the_first_day_with_no_history(self):
+        f = monthly_forecast(self.user, today=date(2026, 3, 1))
+        self.assertEqual(f['days_left'], 30)
+        self.assertEqual(f['expected_variable_spending'], 0)
+
+    def test_forecast_in_a_leap_february(self):
+        f = monthly_forecast(self.user, today=date(2028, 2, 10))
+        self.assertEqual(f['days_left'], 19)  # 29-day month
+
+    def test_forecast_across_new_year(self):
+        make_subscription(self.user, date(2027, 1, 5), created=date(2026, 12, 1), kind='SALARY',
+                          transaction_type='INCOME', amount=Decimal('500'))
+        f = monthly_forecast(self.user, today=date(2026, 12, 31))
+        self.assertEqual(f['upcoming'], [])  # January's salary is not December's income
+        self.assertEqual(f['projected_income'], 0)
+
+    def test_negative_month_never_suggests_a_negative_daily_budget(self):
+        Transaction.objects.create(user=self.user, title='x', amount=Decimal('900'), transaction_type='EXPENSE',
+                                   category='Food', date=date(2026, 10, 2))
+        f = monthly_forecast(self.user, today=date(2026, 10, 15))
+        self.assertLess(f['projected_net'], 0)
+        self.assertEqual(f['safe_daily_spend'], 0)
+
+    def test_monthly_billing_on_the_31st_survives_short_months_and_year_end(self):
+        make_subscription(self.user, date(2026, 10, 31), created=date(2026, 10, 1))
+        bill_due_subscriptions(today=date(2027, 3, 31))
+        dates = sorted(Transaction.objects.values_list('date', flat=True))
+        self.assertEqual(dates, [date(2026, 10, 31), date(2026, 11, 30), date(2026, 12, 31),
+                                 date(2027, 1, 31), date(2027, 2, 28), date(2027, 3, 31)])
+
+    def test_billing_with_a_very_old_start_date_stays_fast_and_creates_nothing_old(self):
+        import time
+
+        make_subscription(self.user, date(2000, 1, 1), created=date(2026, 10, 1))
+        started = time.monotonic()
+        bill_due_subscriptions(today=date(2026, 10, 20))
+        self.assertLess(time.monotonic() - started, 5)
+        # only the bill of the month the plan was added in; nothing from the 26 years before
+        self.assertEqual(list(Transaction.objects.values_list('date', flat=True)), [date(2026, 10, 1)])

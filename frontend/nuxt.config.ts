@@ -228,19 +228,6 @@ export default defineNuxtConfig({
       cleanupOutdatedCaches: true,
       runtimeCaching: [
         {
-          // The user's own data: fresh when online, last known copy when offline.
-          // This cache is deleted on logout (see useAuth).
-          urlPattern: ({ request, url }: { request: Request; url: URL }) =>
-            request.method === 'GET' && /^\/api\/(transactions|subscriptions|savings-goals|budgets|forecast)\/$/.test(url.pathname),
-          handler: 'NetworkFirst',
-          options: {
-            cacheName: 'sf-api',
-            networkTimeoutSeconds: 4,
-            expiration: { maxEntries: 30, maxAgeSeconds: 60 * 60 * 24 * 7 },
-            cacheableResponse: { statuses: [200] },
-          },
-        },
-        {
           // Exchange rates
           urlPattern: /^https:\/\/open\.er-api\.com\/.*/i,
           handler: 'StaleWhileRevalidate',

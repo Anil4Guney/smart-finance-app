@@ -128,6 +128,12 @@ class SubscriptionSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError('Tutar sıfırdan büyük olmalı.')
         return value
 
+    def validate_due_date(self, value):
+        # Far-away dates would make the monthly catch-up loop run for thousands of months
+        if not (2000 <= value.year <= 2100):
+            raise serializers.ValidationError('Geçerli bir tarih gir.')
+        return value
+
     def validate(self, attrs):
         kind = attrs.get('kind', getattr(self.instance, 'kind', Subscription.Kind.SUBSCRIPTION))
         total = attrs.get('total_installments', getattr(self.instance, 'total_installments', None))

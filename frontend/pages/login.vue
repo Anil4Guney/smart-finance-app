@@ -57,6 +57,9 @@
             </button>
           </div>
           <div v-if="error" class="mt-4 text-red-600 text-sm font-medium">{{ error }}</div>
+          <p v-if="slow" class="mt-4 text-sm text-amber-700 dark:text-amber-300" role="status">
+            <i class="pi pi-spin pi-spinner mr-1"></i>Sunucu uyanıyor, ilk giriş 1 dakikayı bulabilir. Lütfen bekle.
+          </p>
           <Button
             type="submit"
             label="Giriş yap"
@@ -89,12 +92,17 @@ const password = ref('')
 const showPassword = ref(false)
 const error = ref('')
 const loading = ref(false)
+const slow = ref(false) // free hosting may need up to a minute to wake up
 
 const handleLogin = async () => {
   error.value = ''
   loading.value = true
+  slow.value = false
+  const slowTimer = setTimeout(() => { slow.value = true }, 6000)
   const result = await login(username.value, password.value)
+  clearTimeout(slowTimer)
   loading.value = false
+  slow.value = false
 
   if (result.success) {
     router.push('/')

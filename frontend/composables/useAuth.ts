@@ -86,6 +86,8 @@ export const useAuth = () => {
   }
 
   const login = async (username: string, password: string) => {
+    // Start from a clean slate: nothing of a previous account may carry over
+    purgeLocalUserData()
     try {
       const response = await $fetch<{ access: string; refresh: string }>(
         `${AUTH_BASE}/jwt/create/`,
@@ -141,11 +143,7 @@ export const useAuth = () => {
           keepalive: true,
         }).catch(() => {})
       }
-      // The offline copy of this user's data must not outlive the session
-      if ('caches' in window) caches.delete('sf-api').catch(() => {})
-      localStorage.removeItem('user')
-      localStorage.removeItem('sf_user')
-      localStorage.removeItem('budgetLimits')
+      purgeLocalUserData()
       window.location.href = '/login'
     }
   }

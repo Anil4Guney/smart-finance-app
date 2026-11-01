@@ -144,7 +144,7 @@
       class="fixed top-16 left-0 lg:left-64 right-0 z-20 bg-amber-500 text-amber-950 text-xs sm:text-sm font-semibold text-center px-3 py-1.5 flex items-center justify-center gap-2"
     >
       <i class="pi pi-wifi text-sm"></i>
-      Çevrimdışısın. Son kaydedilen veriler gösteriliyor; yeni kayıtlar için bağlantı gerekir.
+      Çevrimdışısın. Veriler ve yeni kayıtlar için internet bağlantısı gerekir.
     </div>
 
     <main class="app-main ml-0 lg:ml-64 mt-16 p-4 sm:p-6 pb-28 lg:pb-6 w-full overflow-y-auto overflow-x-hidden bg-gray-50 dark:bg-gray-900">

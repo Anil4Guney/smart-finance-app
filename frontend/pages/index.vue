@@ -7,6 +7,14 @@
       <Button label="İşlem Ekle" icon="pi pi-plus" class="shadow-sm" @click="$router.push('/transactions')" />
     </div>
 
+    <div v-if="loadFailed" role="alert" class="mb-6 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-amber-200 dark:border-amber-500/30 bg-amber-50 dark:bg-amber-500/10 px-4 py-3 text-sm text-amber-900 dark:text-amber-200">
+      <span><i class="pi pi-exclamation-triangle mr-2"></i>Veriler yüklenemedi. Sunucu uyanıyor olabilir veya bağlantın yok; gördüğün tutarlar eksik olabilir.</span>
+      <Button label="Tekrar dene" size="small" severity="warn" :loading="isLoading" @click="reloadAll" />
+    </div>
+    <div v-else-if="isLoading" role="status" class="mb-6 rounded-2xl border border-gray-200 dark:border-gray-700 px-4 py-3 text-sm text-gray-500 dark:text-gray-400">
+      <i class="pi pi-spin pi-spinner mr-2"></i>Veriler yükleniyor… Sunucu uyuyorsa ilk açılış 1 dakikayı bulabilir.
+    </div>
+
     <div class="grid grid-cols-2 md:grid-cols-3 gap-3 sm:gap-6 mb-8 sm:mb-10">
       <div class="col-span-2 md:col-span-1 relative overflow-hidden rounded-3xl p-5 sm:p-6 shadow-lg bg-gradient-to-br from-gray-900 to-gray-800 text-white transform hover:-translate-y-1 transition-all duration-300">
         <div class="absolute top-0 right-0 -mt-4 -mr-4 w-24 h-24 bg-white/10 rounded-full blur-xl"></div>
@@ -267,7 +275,7 @@ const { formatCurrency } = useCurrency()
 
 const { loadSubscriptions, subscriptions, getDaysLeft, getRelativeDateString } = useSubscriptions()
 
-const { data, refresh: refreshTransactions } = await useFetch(`${API_BASE}/transactions/`, {
+const { data, refresh: refreshTransactions, status, error: transactionsError } = await useFetch(`${API_BASE}/transactions/`, {
   headers: { Authorization: computed(() => `Bearer ${token.value}`) },
 })
 const transactions = computed(() => (data.value && Array.isArray(data.value) ? data.value : []))
@@ -278,14 +286,28 @@ const { fetchBudgets } = useBudgets()
 
 // --- Month-end forecast ---
 const forecast = ref<any | null>(null)
+const forecastFailed = ref(false)
+const forecastLoading = ref(true)
 const loadForecast = async () => {
+  forecastLoading.value = true
   try {
     forecast.value = await $fetch(`${API_BASE}/forecast/`, {
       headers: { Authorization: `Bearer ${token.value}` },
     })
+    forecastFailed.value = false
   } catch (error) {
+    forecastFailed.value = true
     console.error('Forecast could not be loaded:', error)
+  } finally {
+    forecastLoading.value = false
   }
+}
+
+// Never show ₺0,00 as if it were real while the data is still loading or has failed to load
+const isLoading = computed(() => status.value === 'pending' || forecastLoading.value)
+const loadFailed = computed(() => !isLoading.value && (!!transactionsError.value || forecastFailed.value))
+const reloadAll = async () => {
+  await Promise.all([loadForecast(), refreshTransactions(), loadSubscriptions()])
 }
 const forecastMonthName = computed(() => {
   if (!forecast.value) return ''
@@ -336,14 +358,15 @@ const monthlyTrendData = computed(() => {
 
   // Geriye doğru 6 ayı dönüyoruz
   for (let i = 5; i >= 0; i--) {
-    const d = new Date();
-    d.setMonth(d.getMonth() - i);
-    
+    // First day of the month: setMonth() on the 29th-31st jumps over short months
+    const now = new Date();
+    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+
     labels.push(`${monthNames[d.getMonth()]} ${d.getFullYear()}`);
 
     // İlgili ayın işlemlerini bul
     const monthTx = transactions.value.filter(t => {
-      const txDate = new Date(t.date);
+      const txDate = fromApiDate(t.date);
       return txDate.getMonth() === d.getMonth() && txDate.getFullYear() === d.getFullYear();
     });
 
@@ -400,7 +423,7 @@ const currentMonthExpenses = computed(() => {
   const currentYear = new Date().getFullYear()
   const monthlyExpenses = transactions.value.filter(t => {
     if (t.transaction_type !== 'EXPENSE') return false
-    const txDate = new Date(t.date)
+    const txDate = fromApiDate(t.date)
     return txDate.getMonth() === currentMonth && txDate.getFullYear() === currentYear
   })
   const totals: Record<string, number> = {}
@@ -434,7 +457,7 @@ const budgetProgress = computed(() => {
 const totalIncome = computed(() => transactions.value.filter(t => t.transaction_type === 'INCOME').reduce((sum, t) => sum + Number(t.amount), 0))
 const totalExpense = computed(() => transactions.value.filter(t => t.transaction_type === 'EXPENSE').reduce((sum, t) => sum + Number(t.amount), 0))
 const balance = computed(() => totalIncome.value - totalExpense.value)
-const recentTransactions = computed(() => [...transactions.value].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()).slice(0, 5))
+const recentTransactions = computed(() => [...transactions.value].sort((a, b) => b.date.localeCompare(a.date) || b.id - a.id).slice(0, 5))
 
 // PASTA GRAFİĞİ AYARLARI
 const pieChartOptions = {

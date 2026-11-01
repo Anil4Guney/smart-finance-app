@@ -13,7 +13,7 @@ Türkçe arayüz, telefona kurulabilir (PWA), yapay zekâ asistanı ve fiş okum
 - **Fiş tarama:** fişin fotoğrafından tutar, tarih, kategori ve para birimi okunur
 - **Çoklu para birimi:** TL, USD, EUR, GBP, PLN; kurlar canlı alınır
 - **Bütçe limitleri, birikim hedefleri, CSV dışa aktarma, hesabı silme**
-- **PWA:** ana ekrana eklenir, çevrimdışı açılır (son kaydedilen verilerle)
+- **PWA:** ana ekrana eklenir, çevrimdışı açılır (yalnızca uygulama kabuğu; veriler cihazda saklanmaz)
 
 ## Teknoloji
 
@@ -82,7 +82,7 @@ Hepsi `backend/.env.example` dosyasında açıklanmıştır. Üretimde **şunlar
 
 `backend/tools/security_probe.py` canlı sunucuya benzer şekilde (yerelde) başlattığın arka yüze saldırgan gibi 72 deneme yapar
 (sahte token, başka kullanıcının verisi, CORS, enjeksiyon, büyük dosya, şifre tahmini...). Her yayından önce çalıştır; kullanımı dosyanın başında yazar.
-`cd backend && python manage.py test finance` ise 70 birim testini çalıştırır.
+`cd backend && python manage.py test finance` ise 81 birim testini çalıştırır.
 
 ## Güvenlik özeti
 

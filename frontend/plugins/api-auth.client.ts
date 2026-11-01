@@ -8,6 +8,9 @@
 // auth.client.ts so the wrapper is in place before anything calls the API.
 
 export default defineNuxtPlugin(() => {
+  // Older versions kept API answers in a browser cache that was shared by every account on the device
+  if ('caches' in window) caches.delete('sf-api').catch(() => {})
+
   const original = globalThis.$fetch
 
   const isAuthEndpoint = (request: unknown) => String(request).includes('/auth/jwt/')

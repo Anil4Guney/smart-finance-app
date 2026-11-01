@@ -334,7 +334,12 @@ const exportCSV = async () => {
       return
     }
     const headers = ['Tarih', 'Başlık', 'Kategori', 'Tür', 'Tutar (USD)', 'Açıklama']
-    const esc = (v: unknown) => `"${String(v ?? '').replace(/"/g, '""')}"`
+    // Cells starting with = + - @ would be run as formulas by Excel: prefix them with an apostrophe
+    const esc = (v: unknown) => {
+      let text = String(v ?? '').replace(/"/g, '""')
+      if (/^[=+\-@\t\r]/.test(text)) text = "'" + text
+      return `"${text}"`
+    }
     const rows = data.map(tx => [tx.date, esc(tx.title), esc(categoryLabel(tx.category)), tx.transaction_type === 'INCOME' ? 'Gelir' : 'Gider', tx.amount, esc(tx.description)])
     const csvContent = [headers.join(';'), ...rows.map(e => e.join(';'))].join('\r\n')
     // BOM so Excel reads Turkish characters correctly
